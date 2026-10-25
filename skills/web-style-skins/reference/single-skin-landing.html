@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELLO WORLD — 新粗野主义版</title>
+<script>
+  // 提前定主题，避免首屏闪
+  (function () {
+    try {
+      var saved = localStorage.getItem('hello-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = (saved === 'light' || saved === 'dark') ? saved : (prefersDark ? 'dark' : 'light');
+      document.documentElement.dataset.theme = theme;
+    } catch (e) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  })();
+</script>
+<style>
+  :root {
+    --paper: #f2eee2;
+    --grid: rgba(17, 17, 17, .07);
+    --ink: #111111;
+    --surface: #fffdf6;
+    --muted: #4a4740;
+    --line: #111111;
+    --accent: #ff5a2e;      /* 橙红 */
+    --accent-2: #1f45ff;    /* 电蓝 */
+    --accent-3: #ffe14d;    /* 荧光黄 */
+    --hard: 12px 12px 0 var(--line);
+    --hard-sm: 6px 6px 0 var(--line);
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #14140f;
+    --grid: rgba(242, 238, 226, .08);
+    --ink: #f2eee2;
+    --surface: #1d1d16;
+    --muted: #b6b1a3;
+    --line: #f2eee2;
+    --accent: #ff6b3d;
+    --accent-2: #7d93ff;
+    --accent-3: #ffd93d;
+    --hard: 12px 12px 0 var(--line);
+    --hard-sm: 6px 6px 0 var(--line);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px 40px;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px, 32px 32px;
+    font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .25s steps(2, end), color .25s steps(2, end);
+  }
+
+  .shell { width: min(680px, 100%); position: relative; }
+
+  /* 顶部工具条：小标签 + 主题开关 */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .kicker {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--accent-3);
+    border: 3px solid var(--line);
+    box-shadow: var(--hard-sm);
+    cursor: pointer;
+    transition: transform .12s steps(2, end), box-shadow .12s steps(2, end);
+  }
+  .theme-toggle:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--line); }
+  .theme-toggle:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--line); }
+  .theme-toggle:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 4px; }
+  .theme-toggle .swatch {
+    width: 12px; height: 12px;
+    background: var(--ink);
+    border: 2px solid var(--line);
+    border-radius: 50%;
+  }
+
+  /* 主卡：粗黑边 + 硬阴影 + 零圆角 */
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 3px solid var(--line);
+    box-shadow: var(--hard);
+    padding: 44px 40px 0;
+    transition: background-color .25s steps(2, end), border-color .25s steps(2, end);
+  }
+
+  /* 角上的撞色贴纸 */
+  .sticker {
+    position: absolute;
+    top: -18px;
+    right: 26px;
+    padding: 7px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #111;
+    background: var(--accent);
+    border: 3px solid var(--line);
+    box-shadow: 4px 4px 0 var(--line);
+    transform: rotate(-3deg);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(46px, 13vw, 92px);
+    line-height: .88;
+    font-weight: 900;
+    letter-spacing: -.045em;
+    text-transform: uppercase;
+  }
+  h1 .line-2 {
+    display: block;
+    color: transparent;
+    -webkit-text-stroke: 2px var(--accent-2);
+  }
+  :root[data-theme="dark"] h1 .line-2 { -webkit-text-stroke-color: var(--accent-2); }
+
+  .rule {
+    height: 3px;
+    background: var(--line);
+    margin: 26px 0 0;
+  }
+  .rule-thin { height: 1px; background: var(--line); opacity: .35; margin: 4px 0 0; }
+
+  .lede {
+    margin: 22px 0 0;
+    max-width: 44ch;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--muted);
+  }
+  .lede b {
+    color: var(--ink);
+    background: var(--accent-3);
+    padding: 0 3px;
+    box-shadow: 0 0 0 1px var(--accent-3);
+  }
+
+  /* 三块小格子 */
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 28px -40px 0;
+    border-top: 3px solid var(--line);
+  }
+  .fact {
+    padding: 16px 18px 18px;
+    border-right: 3px solid var(--line);
+  }
+  .fact:last-child { border-right: 0; }
+  .fact .idx {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    color: var(--muted);
+  }
+  .fact .val {
+    display: block;
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+  }
+
+  /* 底部滚动条 */
+  .marquee {
+    margin: 0 -40px;
+    border-top: 3px solid var(--line);
+    background: var(--accent-2);
+    color: #fff;
+    overflow: hidden;
+    padding: 10px 0;
+  }
+  :root[data-theme="dark"] .marquee { color: #0f0f0b; }
+  .marquee__track {
+    display: flex;
+    width: max-content;
+    animation: scroll 18s linear infinite;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .marquee__track span { padding-right: 24px; }
+  @keyframes scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee__track { animation: none; }
+    * { transition: none !important; }
+  }
+  @media (max-width: 560px) {
+    body { padding: 26px 14px 32px; }
+    .toolbar { margin-bottom: 26px; }
+    .card { padding: 34px 22px 0; box-shadow: 8px 8px 0 var(--line); }
+    .facts { grid-template-columns: 1fr; margin: 24px -22px 0; }
+    .fact { border-right: 0; border-bottom: 3px solid var(--line); }
+    .fact:last-child { border-bottom: 0; }
+    .marquee { margin: 0 -22px; }
+    .sticker { right: 12px; top: -14px; font-size: 10px; padding: 5px 9px; }
+    h1 .line-2 { -webkit-text-stroke-width: 1.5px; }
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="toolbar">
+      <span class="kicker">/ first-page / v2.0</span>
+      <button class="theme-toggle" id="themeToggle" type="button"
+              aria-label="切换深浅色主题" aria-pressed="false">
+        <span class="swatch" aria-hidden="true"></span>
+        <span id="themeLabel">Dark</span>
+      </button>
+    </div>
+
+    <main class="card">
+      <span class="sticker">new</span>
+      <h1>Hello<span class="line-2">World</span></h1>
+      <div class="rule"></div>
+      <div class="rule-thin"></div>
+      <p class="lede">
+        换了个脾气：粗黑描边、硬阴影、零圆角、撞色块。
+        <b>信息优先</b>，装饰靠边站 —— 排版本身就是图形。
+      </p>
+
+      <div class="facts">
+        <div class="fact">
+          <span class="idx">01 / STYLE</span>
+          <span class="val">Neo-Brutalism</span>
+        </div>
+        <div class="fact">
+          <span class="idx">02 / DEPTH</span>
+          <span class="val">单文件 · 无依赖</span>
+        </div>
+        <div class="fact">
+          <span class="idx">03 / THEME</span>
+          <span class="val">亮 / 暗双色</span>
+        </div>
+      </div>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track" id="track">
+          <span>hello world</span><span>×</span><span>bold</span><span>flat</span>
+          <span>loud</span><span>hello world</span><span>×</span><span>bold</span>
+          <span>flat</span><span>loud</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    var label = document.getElementById('themeLabel');
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function paint(theme) {
+      root.dataset.theme = theme;
+      var dark = theme === 'dark';
+      label.textContent = dark ? 'Light' : 'Dark';
+      btn.setAttribute('aria-pressed', String(dark));
+      btn.setAttribute('aria-label', dark ? '切换到浅色主题' : '切换到深色主题');
+    }
+
+    function apply(theme, persist) {
+      paint(theme);
+      if (persist) {
+        try { localStorage.setItem('hello-theme', theme); } catch (e) {}
+      }
+    }
+
+    paint(root.dataset.theme || 'light');
+
+    btn.addEventListener('click', function () {
+      apply(root.dataset.theme === 'dark' ? 'light' : 'dark', true);
+    });
+
+    function onChange(e) {
+      var saved = null;
+      try { saved = localStorage.getItem('hello-theme'); } catch (err) {}
+      if (saved !== 'light' && saved !== 'dark') paint(e.matches ? 'dark' : 'light');
+    }
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  })();
+</script>
+</body>
+</html>
