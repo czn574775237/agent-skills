@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>它能干什么 · 桌面里的 AI 助手</title>
+<style>
+  :root{
+    --ink:#111111;
+    --paper:#f4f1e8;
+    --white:#ffffff;
+    --accent:#ff4a1c;
+    --blue:#1f4bff;
+    --lime:#d8ff3e;
+    --line:3px solid var(--ink);
+    --shadow:8px 8px 0 var(--ink);
+    --shadow-sm:5px 5px 0 var(--ink);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --heavy:Impact,"Haettenschweiler","Arial Narrow Bold","PingFang SC",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(17,17,17,.055) 0 1px, transparent 1px 34px),
+      repeating-linear-gradient(90deg, rgba(17,17,17,.055) 0 1px, transparent 1px 34px);
+  }
+  ::selection{background:var(--lime);color:var(--ink);}
+
+  .wrap{width:min(1180px,100% - 40px);margin-inline:auto;}
+
+  /* ---------- 通用零件 ---------- */
+  .tag{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    padding:6px 10px;border:2px solid var(--ink);background:var(--white);
+  }
+  .tag.lime{background:var(--lime);}
+  .tag.blue{background:var(--blue);color:#fff;}
+  .tag.orange{background:var(--accent);color:#fff;}
+  .tag.ink{background:var(--ink);color:var(--lime);}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:var(--sans);font-size:14px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;
+    padding:15px 26px;border:var(--line);
+    background:var(--blue);color:#fff;box-shadow:var(--shadow-sm);
+    cursor:pointer;text-decoration:none;
+    transition:transform .07s linear, box-shadow .07s linear, background .15s linear;
+  }
+  .btn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);}
+  .btn:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--ink);}
+  .btn.ghost{background:var(--white);color:var(--ink);}
+  .btn.orange{background:var(--accent);}
+
+  .sec{padding:84px 0;border-top:var(--line);}
+  .sechead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:38px;}
+  .sechead h2{
+    font-family:var(--heavy);font-size:clamp(38px,6.4vw,74px);
+    line-height:.97;letter-spacing:-.01em;text-transform:uppercase;
+  }
+  .sechead p{max-width:42ch;font-size:15px;font-weight:600;line-height:1.65;}
+  .kicker{
+    font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.22em;
+    text-transform:uppercase;background:var(--ink);color:var(--lime);
+    display:inline-block;padding:6px 10px;margin-bottom:16px;
+  }
+
+  /* ---------- 顶部条 ---------- */
+  .topbar{
+    border-bottom:var(--line);background:var(--white);
+    position:sticky;top:0;z-index:60;
+  }
+  .topbar .inner{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:12px 0;
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+  .dot{width:12px;height:12px;background:var(--accent);border:2px solid var(--ink);animation:blink 1.6s steps(2,end) infinite;}
+  @keyframes blink{50%{background:var(--lime);}}
+  .topnav{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
+  .topnav a{color:var(--ink);text-decoration:none;padding:6px 9px;border:2px solid transparent;}
+  .topnav a:hover{border-color:var(--ink);background:var(--lime);}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:52px 0 0;position:relative;overflow:hidden;}
+  .marquee{overflow:hidden;border-block:var(--line);background:var(--lime);white-space:nowrap;}
+  .marquee.alt{background:var(--ink);color:var(--lime);border-top:none;}
+  .marquee > div{display:inline-block;padding:9px 0;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;animation:slide 26s linear infinite;}
+  .marquee.rev > div{animation-direction:reverse;animation-duration:34s;}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  .heroTop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:38px 0 22px;}
+  h1{
+    font-family:var(--heavy);
+    font-size:clamp(62px,13.6vw,182px);
+    line-height:1;letter-spacing:-.025em;text-transform:uppercase;
+    transform:scaleX(.94);transform-origin:left center;
+  }
+  h1 .row{display:block;}
+  h1 .row + .row{margin-top:.02em;}
+  h1 .hl{
+    display:inline-block;background:var(--accent);color:#fff;
+    padding:0 .06em;border:var(--line);box-shadow:10px 10px 0 var(--ink);
+    transform:rotate(-1.6deg);
+  }
+  h1 .out{
+    -webkit-text-stroke:3px var(--ink);color:transparent;
+  }
+  .herogrid{display:grid;grid-template-columns:1.35fr .95fr;gap:30px;align-items:start;margin-top:34px;}
+  .heroCopy p{font-size:clamp(15px,1.9vw,19px);font-weight:600;line-height:1.62;max-width:38ch;}
+  .heroCopy p + p{margin-top:14px;}
+  .ctaRow{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px;}
+
+  .terminal{
+    border:var(--line);background:var(--ink);color:#e9e6da;
+    box-shadow:var(--shadow);font-family:var(--mono);font-size:12.5px;line-height:1.75;
+  }
+  .terminal .bar{
+    display:flex;align-items:center;gap:8px;padding:9px 12px;
+    border-bottom:3px solid #333;background:#1c1c1c;
+  }
+  .terminal .bar i{width:11px;height:11px;background:#444;display:block;border:2px solid #000;}
+  .terminal .bar i:nth-child(1){background:var(--accent);}
+  .terminal .bar i:nth-child(2){background:var(--lime);}
+  .terminal .bar i:nth-child(3){background:var(--blue);}
+  .terminal .bar span{margin-left:auto;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#8a8a8a;}
+  .terminal .body{padding:16px 16px 18px;}
+  .terminal .l{display:block;white-space:pre-wrap;word-break:break-word;}
+  .terminal .p{color:var(--lime);}
+  .terminal .c{color:#8f8f8f;}
+  .terminal .h{color:var(--blue);filter:brightness(1.7);}
+  .caret{display:inline-block;width:8px;height:14px;background:var(--lime);vertical-align:-2px;animation:blink 1.1s steps(2,end) infinite;}
+
+  /* ---------- 数字面板 ---------- */
+  .stats{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    border:var(--line);background:var(--white);box-shadow:var(--shadow);
+    margin-top:58px;
+  }
+  .stat{padding:26px 22px;border-right:var(--line);}
+  .stat:last-child{border-right:none;}
+  .stat b{
+    display:block;font-family:var(--heavy);font-size:clamp(38px,5.6vw,66px);
+    line-height:.86;letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+  }
+  .stat span{
+    display:block;margin-top:10px;font-family:var(--mono);font-size:11px;
+    font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#555;
+  }
+  .stat:nth-child(1){background:var(--lime);}
+  .stat:nth-child(3){background:#fff6f2;}
+
+  /* ---------- 能力四宫格 ---------- */
+  .cards4{display:grid;grid-template-columns:repeat(2,1fr);gap:26px;}
+  .card{
+    border:var(--line);background:var(--white);padding:28px 26px 26px;
+    box-shadow:var(--shadow-sm);position:relative;
+    transition:transform .09s linear, box-shadow .09s linear;
+  }
+  .card:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--ink);}
+  .card .num{
+    position:absolute;top:-18px;right:18px;background:var(--ink);color:var(--lime);
+    font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;
+    padding:5px 9px;border:2px solid var(--ink);
+  }
+  .card h3{
+    font-family:var(--heavy);font-size:clamp(26px,3.3vw,38px);line-height:1;
+    text-transform:uppercase;margin:14px 0 12px;letter-spacing:-.01em;
+  }
+  .card p{font-size:14.5px;line-height:1.68;font-weight:500;color:#222;}
+  .card .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+  .card .tags .tag{font-size:10px;padding:4px 8px;}
+
+  /* ---------- 现场演示 ---------- */
+  .demoGrid{display:grid;grid-template-columns:1fr 400px;gap:26px;align-items:start;}
+  .stream{
+    border:var(--line);background:var(--white);box-shadow:var(--shadow);
+    min-height:430px;padding:20px;display:flex;flex-direction:column;gap:14px;
+  }
+  .stream .head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border-bottom:3px solid var(--ink);padding-bottom:12px;margin-bottom:2px;
+  }
+  .stream .head b{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;}
+  .msg{animation:pop .22s ease-out both;}
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .msg.me{
+    align-self:flex-end;max-width:86%;background:var(--blue);color:#fff;
+    border:var(--line);box-shadow:4px 4px 0 var(--ink);
+    padding:11px 14px;font-size:14px;line-height:1.55;font-weight:600;
+  }
+  .msg.tool{
+    border:2px solid var(--ink);background:#fbfaf5;padding:10px 12px;
+    font-family:var(--mono);font-size:12px;line-height:1.6;
+  }
+  .msg.tool .tg{
+    display:inline-block;background:var(--ink);color:var(--lime);
+    font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:2px 6px;margin-right:8px;vertical-align:1px;
+  }
+  .msg.tool .arg{color:#333;}
+  .msg.tool .out{display:block;color:#666;margin-top:5px;}
+  .msg.card-out{
+    border:var(--line);background:var(--lime);box-shadow:4px 4px 0 var(--ink);
+    padding:12px 14px;font-family:var(--mono);font-size:12px;font-weight:700;
+    display:flex;align-items:center;gap:10px;
+  }
+  .msg.ai{font-size:14.5px;line-height:1.66;font-weight:500;padding:2px 2px 0;}
+  .msg.ai b{background:var(--lime);padding:0 3px;border-bottom:2px solid var(--ink);}
+  .demoSide{display:flex;flex-direction:column;gap:26px;}
+  .sidecard{border:var(--line);background:var(--white);padding:22px;box-shadow:var(--shadow-sm);}
+  .sidecard h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px;}
+  .sidecard ul{list-style:none;display:flex;flex-direction:column;gap:10px;}
+  .sidecard li{font-size:13.5px;line-height:1.55;padding-left:22px;position:relative;font-weight:500;}
+  .sidecard li::before{content:"▚";position:absolute;left:0;top:0;color:var(--accent);font-weight:700;}
+  .demobtns{display:flex;gap:12px;flex-wrap:wrap;}
+
+  /* ---------- 技能墙 ---------- */
+  .skills{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  .skill{
+    border:var(--line);background:var(--white);padding:22px 20px;
+    box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+    transition:transform .09s linear, box-shadow .09s linear;
+  }
+  .skill:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 var(--ink);}
+  .skill .swatch{width:100%;height:10px;background:var(--lime);border:2px solid var(--ink);margin-bottom:16px;}
+  .skill:nth-child(3n+2) .swatch{background:var(--blue);}
+  .skill:nth-child(3n+3) .swatch{background:var(--accent);}
+  .skill h4{font-family:var(--mono);font-size:15px;letter-spacing:.02em;margin-bottom:9px;}
+  .skill p{font-size:13px;line-height:1.6;color:#333;font-weight:500;}
+  .skill .role{
+    display:inline-block;margin-top:14px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;background:var(--ink);color:var(--paper);
+    padding:3px 7px;
+  }
+
+  /* ---------- 时间轴 ---------- */
+  .timeline{border:var(--line);background:var(--white);box-shadow:var(--shadow);}
+  .tl{display:grid;grid-template-columns:120px 1fr;border-bottom:3px solid var(--ink);}
+  .tl:last-child{border-bottom:none;}
+  .tl .t{
+    font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;
+    padding:20px 16px;border-right:3px solid var(--ink);background:var(--lime);
+  }
+  .tl:nth-child(even) .t{background:#fff;}
+  .tl .c{padding:18px 22px;font-size:14px;line-height:1.62;font-weight:500;}
+  .tl .c b{font-weight:800;}
+
+  /* ---------- 运行时 ---------- */
+  .runtimes{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  .rt{border:var(--line);background:var(--ink);color:#eee;padding:24px 22px;box-shadow:var(--shadow-sm);}
+  .rt h4{font-family:var(--heavy);font-size:32px;letter-spacing:.01em;color:var(--lime);line-height:1;text-transform:uppercase;}
+  .rt .v{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#999;margin:8px 0 14px;text-transform:uppercase;}
+  .rt p{font-size:13px;line-height:1.62;color:#d6d3c8;}
+
+  /* ---------- 结尾 ---------- */
+  .outro{border-top:var(--line);background:var(--lime);overflow:hidden;}
+  .outro .inner{padding:80px 0 66px;display:flex;flex-direction:column;gap:28px;}
+  .outro h2{
+    font-family:var(--heavy);font-size:clamp(44px,10.5vw,132px);line-height:.84;
+    text-transform:uppercase;letter-spacing:-.02em;
+  }
+  .outro h2 em{font-style:normal;background:var(--white);border:var(--line);box-shadow:8px 8px 0 var(--ink);padding:0 .07em;display:inline-block;transform:rotate(-1deg);}
+  .outro p{max-width:52ch;font-size:16px;font-weight:600;line-height:1.65;}
+  footer{border-top:var(--line);background:var(--ink);color:#9a978c;}
+  footer .inner{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:24px 0;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;}
+  footer b{color:var(--lime);}
+
+  #prog{
+    position:fixed;top:0;left:0;height:5px;width:0%;z-index:99;
+    background:var(--accent);border-right:3px solid var(--ink);
+    pointer-events:none;
+  }
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .5s ease, transform .5s ease;}
+  .reveal.on{opacity:1;transform:none;}
+
+  @media (max-width:980px){
+    .herogrid{grid-template-columns:1fr;}
+    .demoGrid{grid-template-columns:1fr;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .stat:nth-child(2){border-right:none;}
+    .stat:nth-child(1),.stat:nth-child(2){border-bottom:var(--line);}
+    .skills,.runtimes{grid-template-columns:1fr 1fr;}
+    .cards4{grid-template-columns:1fr;}
+  }
+  @media (max-width:620px){
+    .sec{padding:60px 0;}
+    .skills,.runtimes{grid-template-columns:1fr;}
+    .stats{grid-template-columns:1fr;}
+    .stat{border-right:none;border-bottom:var(--line);}
+    .stat:last-child{border-bottom:none;}
+    .topnav{display:none;}
+    .tl{grid-template-columns:1fr;}
+    .tl .t{border-right:none;border-bottom:3px solid var(--ink);padding:10px 16px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important;}
+    html{scroll-behavior:auto;}
+    .reveal{opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="prog" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="wrap inner">
+    <div class="brand"><span class="dot"></span> 本地桌面 · AI 工作台 <span style="color:#888">/ v-demo</span></div>
+    <nav class="topnav">
+      <a href="#ability">能力</a>
+      <a href="#demo">现场演示</a>
+      <a href="#skills">技能库</a>
+      <a href="#auto">无人值守</a>
+      <a href="#stack">运行时</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="marquee"><div id="mq1">不是聊天窗口 ★ 是会动手的家伙 ★ 读写文件 ★ 跑命令 ★ 查资料 ★ 出成品 ★&nbsp;</div></div>
+
+  <div class="wrap">
+    <div class="heroTop">
+      <span class="tag lime">Neo-Brutalism</span>
+      <span class="tag blue">单文件 · 零依赖</span>
+      <span class="tag orange">本地运行 · 数据不出机器</span>
+    </div>
+
+    <h1>
+      <span class="row">它能</span>
+      <span class="row"><span class="hl">干什么</span></span>
+      <span class="row out">DO THE WORK.</span>
+    </h1>
+
+    <div class="herogrid">
+      <div class="heroCopy">
+        <p>你面前不是一个只会接话的输入框 —— 它是一个<strong>带手</strong>的助手：能读你工作区里的文件、能在你的机器上跑命令、能上网查证、能把结果写成一份能直接交出去的成品。</p>
+        <p>它还会记住你：偏好、持仓、习惯的口径。聊过一次的事，下次不用再说一遍。</p>
+        <div class="ctaRow">
+          <a class="btn" href="#demo">看它现场干活 ↓</a>
+          <a class="btn ghost" href="#ability">它到底会什么</a>
+        </div>
+      </div>
+
+      <div class="terminal" aria-hidden="true">
+        <div class="bar"><i></i><i></i><i></i><span>agent · live</span></div>
+        <div class="body">
+          <span class="l c"># 你随口一句</span>
+          <span class="l p">› 把这周的行情整理成一页报告</span>
+          <span class="l">&nbsp;</span>
+          <span class="l h">↳ 读取 workspace/portfolio.json …</span>
+          <span class="l h">↳ run_shell  quote.mjs NVDA TSM</span>
+          <span class="l h">↳ fetch_url   news feed ×3</span>
+          <span class="l h">↳ write_file  report.html</span>
+          <span class="l h">↳ mark_deliverable  ← 出卡片</span>
+          <span class="l">&nbsp;</span>
+          <span class="l p">✔ 做好了，卡片在上面<span class="caret"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数字纪律：真实页面里这里必须是能查到的真值，示例值要写明 -->
+    <div class="stats reveal" id="stats">
+      <div class="stat"><b data-count="30">0</b><span>天连续使用（示例）</span></div>
+      <div class="stat"><b data-count="1284">0</b><span>条对话消息</span></div>
+      <div class="stat"><b data-count="46">0</b><span>条长期记忆（示例）</span></div>
+      <div class="stat"><b data-count="7">0</b><span>个技能模块</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="ability">
+  <div class="wrap">
+    <div class="sechead">
+      <div>
+        <div class="kicker">01 / what it really does</div>
+        <h2>四只手<br>不是一张嘴</h2>
+      </div>
+      <p>核心只有一句话：它说的话，能落到文件里、落到命令里、落到一个你看得见的成品上。以下四条，每一条都能当场演示。</p>
+    </div>
+
+    <div class="cards4">
+      <article class="card reveal">
+        <span class="num">A / 01</span>
+        <span class="tag lime">文件</span>
+        <h3>读写你的工作区</h3>
+        <p>读文件、改文件、造文件。它能在几十个目录里按内容检索、按文件名找，改之前先读一遍，改完告诉你改了哪几行 —— 不是给你一段「你自己粘贴一下」的代码。</p>
+        <div class="tags"><span class="tag">read_file</span><span class="tag">edit_file</span><span class="tag">grep / glob</span></div>
+      </article>
+
+      <article class="card reveal">
+        <span class="num">A / 02</span>
+        <span class="tag orange">执行</span>
+        <h3>在真机上跑命令</h3>
+        <p>装依赖、跑脚本、起服务、看日志。十几秒以上的活丢到后台跑，跑完自动回来汇报；卡住了随时能停。它跑的是你的真实环境，不是沙盒里的玩具。</p>
+        <div class="tags"><span class="tag">run_shell</span><span class="tag">start_task</span><span class="tag">kill_task</span></div>
+      </article>
+
+      <article class="card reveal">
+        <span class="num">A / 03</span>
+        <span class="tag blue">联网</span>
+        <h3>查了再说，不瞎猜</h3>
+        <p>要外部信息就当场去取：抓网页、拉行情、读文档。更狠的一招是借你真实的浏览器 —— 带着你已登录的会话去干活，而不是一个空的匿名窗口。</p>
+        <div class="tags"><span class="tag">fetch_url</span><span class="tag">browser-skill</span><span class="tag">stock-quote</span></div>
+      </article>
+
+      <article class="card reveal">
+        <span class="num">A / 04</span>
+        <span class="tag lime">并行</span>
+        <h3>会分工，也会记住</h3>
+        <p>活太大就派子代理：各自独立上下文，并行去啃一块，只把结论带回来。同时把值得长期记住的事沉淀成记忆 —— 你的偏好、你的持仓、你认定的口径。</p>
+        <div class="tags"><span class="tag">sub-agent</span><span class="tag">remember</span><span class="tag">recall</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="demo" style="background:var(--white);">
+  <div class="wrap">
+    <div class="sechead">
+      <div>
+        <div class="kicker">02 / live trace</div>
+        <h2>一次真实<br>的请求</h2>
+      </div>
+      <p>这是把一条需求跑完的真实过程剪影：从一句中文，到一串工具调用，最后变成你界面上一张能点开的卡片。点「重播」再看一遍。</p>
+    </div>
+
+    <div class="demoGrid">
+      <div class="stream" id="stream">
+        <div class="head">
+          <b>会话 · 今日收盘报告</b>
+          <span class="tag lime" id="demoState">待启动</span>
+        </div>
+        <!-- 由脚本注入 -->
+      </div>
+
+      <div class="demoSide">
+        <div class="sidecard">
+          <h4>为什么这算「做完了」</h4>
+          <ul>
+            <li>素材来自真实接口与真实文件，不是编的</li>
+            <li>中间每一步都可追溯：调了哪个工具、参数是什么</li>
+            <li>产出物有明确落点 —— 卡片、HTML、图片</li>
+            <li>结论后面跟着口径，你能验证，也能推翻</li>
+          </ul>
+        </div>
+        <div class="sidecard" style="background:var(--ink);color:#e9e6da;">
+          <h4 style="color:var(--lime);">同样的活它还干过</h4>
+          <ul>
+            <li style="color:#d6d3c8;">每天 07:30 自动出的收盘报告</li>
+            <li style="color:#d6d3c8;">按你的持仓写的市场速览页</li>
+            <li style="color:#d6d3c8;">查行情、看盘后、盯 52 周区间</li>
+            <li style="color:#d6d3c8;">写小说、分章、跨章校验设定</li>
+          </ul>
+        </div>
+        <div class="demobtns">
+          <button class="btn orange" id="replay" type="button">↻ 重播</button>
+          <button class="btn ghost" id="skip" type="button">直接看结果 ⏭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="skills">
+  <div class="wrap">
+    <div class="sechead">
+      <div>
+        <div class="kicker">03 / skill library</div>
+        <h2>技能<br>是装上去的</h2>
+      </div>
+      <p>通用能力之外，还有一包可插拔的「专业手法」：每个技能自带流程、脚本和护栏，用的时候整份读进来照着走。</p>
+    </div>
+
+    <div class="skills">
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>market-brief</h4>
+        <p>美股速览：拉指数与关注列表、抓当日新闻做归因、结合集中持仓写成简报，并产出一页交互式报告；含每日收盘自动发信流水线。</p>
+        <span class="role">每日无人值守</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>stock-quote</h4>
+        <p>查报价、涨跌、盘后、量能、估值、52 周区间。先走免登录公开接口，不行再开浏览器看财经站。</p>
+        <span class="role">行情</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>browser-skill</h4>
+        <p>在用户真实浏览器里开一个独立窗口干活，复用已有登录态；点、填、翻页、抓需要登录的页面。</p>
+        <span class="role">带登录态上网</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>deliverables</h4>
+        <p>交付纪律：什么算成品、成品怎么出卡片、哪些中间产物不该申报 —— 让「做完了」这件事有统一标准。</p>
+        <span class="role">交付规范</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>local-page-check</h4>
+        <p>写完页面自己验收：起本地服务、真浏览器打开、DOM 断言、定点截图，先看断言再看图。</p>
+        <span class="role">自检</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>chinese-novelist</h4>
+        <p>中文长篇创作：分章、连续剧情、设定一致性校验、续写未完成项目，悬疑言情奇幻科幻历史全覆盖。</p>
+        <span class="role">长文创作</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>planning</h4>
+        <p>三步以上的活先列清单：全量覆盖、同时只有一条在做，做完就地打勾 —— 你能在界面上看到进度。</p>
+        <span class="role">任务编排</span>
+      </article>
+      <article class="skill reveal">
+        <div class="swatch"></div>
+        <h4>+ 你自己的技能</h4>
+        <p>装一次，全局可用。技能就是一个带说明的目录，写好了从工作区装进用户根即可，不用重启。</p>
+        <span class="role">可扩展</span>
+      </article>
+      <article class="skill reveal" style="background:var(--lime);">
+        <div class="swatch" style="background:var(--ink);"></div>
+        <h4 style="font-family:var(--heavy);font-size:26px;letter-spacing:0;text-transform:uppercase;">它自己会写代码</h4>
+        <p>这一页就是它写的：单文件、零依赖、断网也能开。有本事做完，还敢当场让你验收。</p>
+        <span class="role" style="background:var(--ink);color:var(--lime);">dogfooding</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="auto" style="background:var(--white);">
+  <div class="wrap">
+    <div class="sechead">
+      <div>
+        <div class="kicker">04 / unattended</div>
+        <h2>你不看着<br>它也在跑</h2>
+      </div>
+      <p>定时任务不是闹钟，是到点真的起一轮完整的活：拉数据、写报告、发出去。人不在，流程照走。</p>
+    </div>
+
+    <div class="timeline reveal">
+      <div class="tl"><div class="t">07:30</div><div class="c"><b>收盘报告自动生成。</b>取上一交易日收盘数据，抓当日新闻标题做归因，结合持仓写成结论 —— 指数、持仓现状、消息面三段。</div></div>
+      <div class="tl"><div class="t">07:31</div><div class="c"><b>排版成一页 HTML。</b>明亮简洁的版式，每张卡片都能点开看细节，手机上也读得下去。</div></div>
+      <div class="tl"><div class="t">07:32</div><div class="c"><b>用你的 Gmail 发出去。</b>借你浏览器里的登录态，收件人就是你，不用配 SMTP、不碰你的密码。</div></div>
+      <div class="tl"><div class="t">全天</div><div class="c"><b>你在的时候：</b>随口一句「今天大盘怎么样」，它就现拉行情现写；<b>你不在的时候：</b>清单照排、报告照出。</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="stack">
+  <div class="wrap">
+    <div class="sechead">
+      <div>
+        <div class="kicker">05 / runtime</div>
+        <h2>三个运行时<br>开箱可用</h2>
+      </div>
+      <p>不用你配环境。要跑 Python、要跑 JS、要在浏览器里动手，机器上都备好了，缺的包当场取。</p>
+    </div>
+
+    <div class="runtimes">
+      <div class="rt reveal">
+        <h4>uv</h4>
+        <div class="v">python 包与解释器 · 0.12</div>
+        <p>一条命令跑脚本，临时依赖按需带上，不建 venv、不污染系统 Python。</p>
+      </div>
+      <div class="rt reveal">
+        <h4>bun</h4>
+        <div class="v">js / ts 运行时 · 1.4</div>
+        <p>TS 免编译直跑；也自带无登录态的网页自动化，截图、抓取、冒烟一把梭。</p>
+      </div>
+      <div class="rt reveal">
+        <h4>bsk</h4>
+        <div class="v">真实浏览器 · 0.3</div>
+        <p>通过扩展在你自己的浏览器里开 Agent Window，复用登录态 —— 该看的东西看得见。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="outro">
+  <div class="wrap inner">
+    <div><span class="tag ink">ready · 随时开工</span></div>
+    <h2>说一句话<br><em>活儿交出去</em></h2>
+    <p>它不承诺「可以帮你」，它直接把文件放在你桌上。想试试的话，现在就在这个窗口里打一行字：查个行情、改个文件、要一张页面，都行。</p>
+    <div class="ctaRow">
+      <a class="btn" href="#ability">回看能力清单 ↑</a>
+      <a class="btn ghost" href="#demo">再看一遍现场</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap inner">
+    <div>built by <b>the agent itself</b> · single file · zero dependency</div>
+    <div>单文件 · 零依赖 · 本地渲染</div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- 跑马灯无缝 ----
+  ['mq1'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML += el.innerHTML;
+  });
+
+  // ---- 数字滚动 ----
+  function runCount(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+    var t0 = null, dur = 1100;
+    function step(ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * e).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target.toLocaleString('en-US');
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ---- 进入视口显现 ----
+  var io = null;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.classList.add('on');
+        if (en.target.id === 'stats') {
+          en.target.querySelectorAll('b[data-count]').forEach(runCount);
+        }
+        io.unobserve(en.target);
+      });
+    }, { threshold: 0.22 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('on'); });
+    document.querySelectorAll('b[data-count]').forEach(runCount);
+  }
+
+  // ---- 现场演示：逐步回放 ----
+  var stream = document.getElementById('stream');
+  var stateEl = document.getElementById('demoState');
+  var head = stream ? stream.querySelector('.head') : null;
+  var timer = null;
+  var seq = 0;
+
+  var STEPS = [
+    { k: 'me', text: '帮我看下今天的行情，那笔 covered call 该不该动，做成一页能看的' },
+    { k: 'tool', name: 'run_shell', arg: 'holdings.json + quote.mjs NVDA TSM',
+      out: 'NVDA 214.7 (+1.8%) · TSM 302.5 (-0.6%) · 6 个持仓已载入' },
+    { k: 'tool', name: 'fetch_url', arg: 'news feed ×3（大盘 / 光模块 / 芯片）',
+      out: '取回 41 条标题 · 去重后 27 条' },
+    { k: 'tool', name: 'recall', arg: '"卖出纪律"',
+      out: '命中策略备忘：行权价 180 的 Put 收租 + 260 的 Call 卖出，参考区间已取到' },
+    { k: 'tool', name: 'write_file', arg: 'report.html · 1,240 行',
+      out: '写出：指数三栏 + 持仓现状 + 消息面 + 下一步思路' },
+    { k: 'tool', name: 'mark_deliverable', arg: 'report.html',
+      out: '已申报 → 界面出卡片' },
+    { k: 'card', text: 'report.html · 1,240 行 · 点开即读' },
+    { k: 'ai', text: '做完了。今天大盘是 <b>风险偏好回升但宽度不够</b> 的一天：指数涨、只有三成个股跟涨。NVDA 这刻在 214，离 <b>行权价 180 的 Put</b> 安全距离很厚，收租不用动；要动的是 <b>行权价 260 的 Call</b> —— 财报临近，波动会先起来。' }
+  ];
+
+  function clearStream() {
+    Array.prototype.slice.call(stream.querySelectorAll('.msg')).forEach(function (n) { n.remove(); });
+  }
+
+  function setState(txt) { if (stateEl) stateEl.textContent = txt; }
+
+  function typeText(node, text, done) {
+    var i = 0;
+    (function tick() {
+      i += 2;
+      node.textContent = text.slice(0, i);
+      if (i < text.length) {
+        timer = setTimeout(tick, 26);
+      } else {
+        node.textContent = text;
+        done();
+      }
+    })();
+  }
+
+  function makeEl(cls, html) {
+    var d = document.createElement('div');
+    d.className = 'msg ' + cls;
+    if (html) d.innerHTML = html;
+    stream.appendChild(d);
+    return d;
+  }
+
+  function runStep(i) {
+    if (i >= STEPS.length) { setState('完成 ✔'); return; }
+    var s = STEPS[i];
+
+    if (s.k === 'me') {
+      var node = makeEl('me', '');
+      typeText(node, s.text, function () { timer = setTimeout(function () { runStep(i + 1); }, 380); });
+      return;
+    }
+    if (s.k === 'tool') {
+      makeEl('tool', '<span class="tg">' + s.name + '</span><span class="arg">' + s.arg + '</span>' +
+        '<span class="out">→ ' + s.out + '</span>');
+      timer = setTimeout(function () { runStep(i + 1); }, 760);
+      return;
+    }
+    if (s.k === 'card') {
+      makeEl('card-out', '▣ 交付物卡片 · ' + s.text);
+      timer = setTimeout(function () { runStep(i + 1); }, 620);
+      return;
+    }
+    if (s.k === 'ai') {
+      var a = makeEl('ai', '');
+      var i2 = 0, plain = s.text.replace(/<[^>]+>/g, '');
+      (function tick() {
+        i2 += 3;
+        a.innerHTML = s.text.replace(/<\/?b>/g, '').slice(0, i2);
+        if (i2 < plain.length) { timer = setTimeout(tick, 22); }
+        else { a.innerHTML = s.text; setState('完成 ✔'); }
+      })();
+      return;
+    }
+  }
+
+  function play() {
+    if (!stream) return;
+    if (timer) { clearTimeout(timer); timer = null; }
+    clearStream();
+    setState('运行中…');
+    // 等一帧，保证清空被渲染
+    requestAnimationFrame(function () { runStep(0); });
+  }
+
+  function skipToEnd() {
+    if (!stream) return;
+    if (timer) { clearTimeout(timer); timer = null; }
+    clearStream();
+    STEPS.forEach(function (s) {
+      if (s.k === 'me') makeEl('me', s.text);
+      else if (s.k === 'tool') makeEl('tool', '<span class="tg">' + s.name + '</span><span class="arg">' + s.arg + '</span><span class="out">→ ' + s.out + '</span>');
+      else if (s.k === 'card') makeEl('card-out', '▣ 交付物卡片 · ' + s.text);
+      else if (s.k === 'ai') makeEl('ai', s.text);
+    });
+    setState('完成 ✔');
+  }
+
+  var replay = document.getElementById('replay');
+  var skip = document.getElementById('skip');
+  if (replay) replay.addEventListener('click', play);
+  if (skip) skip.addEventListener('click', skipToEnd);
+
+  // 进入视口自动播一次
+  var demoStarted = false;
+  if ('IntersectionObserver' in window) {
+    var dio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && !demoStarted) { demoStarted = true; play(); }
+      });
+    }, { threshold: 0.28 });
+    dio.observe(stream);
+  } else {
+    play();
+  }
+
+  // ---- 顶部进度条 ----
+  var prog = document.getElementById('prog');
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? (window.scrollY / h) * 100 : 0;
+    if (prog) prog.style.width = Math.max(0, Math.min(100, p)) + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 供自检脚本查询的钩子
+  window.__demo = { play: play, skip: skipToEnd, steps: STEPS.length };
+})();
+</script>
+</body>
+</html>
