@@ -195,6 +195,20 @@ body.brief .step{border-bottom:none;padding-top:40px}
   header.hero{padding-top:92px}
 }
 body.brief .chip[data-detail]{opacity:.35}
+.vlabel{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--up);margin:24px 0 10px}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);margin:26px 0 4px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.hstats>div{padding:13px 16px 13px 0;border-right:1px solid var(--line)}
+.hstats>div:last-child{border-right:0}
+.hstats .hk{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--ink3)}
+.hstats b{display:block;font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:5px}
+.hstats i{display:block;font-style:normal;font-size:11.5px;color:var(--ink3);margin-top:2px}
+@media(max-width:700px){
+  .hstats{grid-template-columns:1fr 1fr}
+  .hstats>div:nth-child(2){border-right:0}
+  .hstats>div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .hstats b{font-size:17px}
+}
+
 @media print{
   .topbar,.prog,.cta,.briefbtn{display:none}
   body{background:#fff}
@@ -223,11 +237,18 @@ body.brief .chip[data-detail]{opacity:.35}
 
 <header class="hero"><div class="wrap">
   <div class="eyebrow">单票研究 · Lumentum Holdings · 纳斯达克 LITE</div>
-  <h1>先看事实。<br><em>再看价格。</em></h1>
+  <div class="vlabel">结论</div>
+  <h1><em>估值能被增长消化，</em><br>方向由 11 月 5 日的财报给出。</h1>
   <p class="lede">
-    本报告只做三件事：<b>列出已核实的事实</b>、<b>量化价格与估值</b>、<b>给出四种情景和验证点</b>。
-    共 7 步。每步都有可点的控件。按顺序读，或直接跳到你要的一步。
+    FY27 预期市盈率 42.5 倍，对应 EPS 预期增速 128%。四个情景加权后，12 个月期望价 <b>864 美元</b>，比现价高 3%。
+    上行与下行的概率接近，下行的幅度更大。
   </p>
+  <div class="hstats">
+    <div><span class="hk">收盘 · 10-30</span><b>$840.70</b><i>当日 −8.57%</i></div>
+    <div><span class="hk">FY27 预期 P/E</span><b>42.5×</b><i>5 年均值 30×</i></div>
+    <div><span class="hk">目标价均值</span><b>$1,170</b><i>26 家，较现价 +39%</i></div>
+    <div><span class="hk">下一催化</span><b>11-05</b><i>FQ1 财报，盘后</i></div>
+  </div>
   <div class="cta">
     <button class="btn" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">从第 1 步开始</button>
     <button class="btn ghost" id="brief2">只看结论（约 1 分钟）</button>
@@ -240,13 +261,13 @@ body.brief .chip[data-detail]{opacity:.35}
 <!-- ================= 01 ================= -->
 <section class="step" id="s1">
   <div class="shead"><div class="snum">01 / 07</div><h2>结论：三句话</h2></div>
-  <p class="hint">先看这四张卡的数据，再读三句话。不需要背景知识。</p>
+  <p class="hint">看四个数字，再读三句话。不需要背景知识。</p>
 
   <div class="cards">
-    <div class="card"><div class="k">最新收盘（10-30）</div><div class="v">$840.70</div><div class="s">当日 −8.57%</div></div>
     <div class="card"><div class="k">近一年涨幅</div><div class="v up">+292%</div><div class="s">年初至今 +128%</div></div>
-    <div class="card"><div class="k">FY27 预期市盈率</div><div class="v">42.5×</div><div class="s">5 年均值 30×</div></div>
-    <div class="card"><div class="k">分析师目标价均值</div><div class="v">$1,170</div><div class="s">26 家，较现价 +39%</div></div>
+    <div class="card"><div class="k">近一年最大回撤</div><div class="v down">−42.8%</div><div class="s">7-29 见底，10 月创新高</div></div>
+    <div class="card"><div class="k">财报次日平均波动</div><div class="v">9.1%</div><div class="s">过去 10 次</div></div>
+    <div class="card"><div class="k">空头占股本</div><div class="v">8.5%</div><div class="s">1.5 日回补</div></div>
   </div>
 
   <h3>三句话</h3>

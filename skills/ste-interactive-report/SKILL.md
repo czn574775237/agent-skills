@@ -41,11 +41,12 @@ ASD-STE100 是英文写作规范，中文按下面的方式落地。八条，写
 
 > 自检口诀：随便抽三句朗读，若任何一句需要读第二遍，重写。
 
-## 二、七步结构（照抄顺序，别改）
+## 二、首屏 + 七步结构（照抄顺序，别改）
 
 | 步 | 回答的问题 | 必备件 |
 | --- | --- | --- |
-| 01 结论 | 现在是什么状态 | 4 张事实卡 + 三句话（每句一条独立信息） |
+| 首屏 | 一句话能否判定 | 结论句（可反驳，不写口号）+ 3~4 个关键数字条 + 两个入口按钮 |
+| 01 结论 | 现在是什么状态 | 4 张事实卡 + 三句话（每句一条独立信息，且不与首屏重复） |
 | 02 事件 | 最近发生了什么 | 时间线，7±2 条，每条含日期、事实、当日股价 |
 | 03 财务 | 生意在变好还是变坏 | 分季度表 + 分段切换（季度／年度）+ 供给或产能事实 |
 | 04 价格 | 股价走到了哪里 | 长周期图 + 近 120 日图 + 关键位置表 |
@@ -53,7 +54,7 @@ ASD-STE100 是英文写作规范，中文按下面的方式落地。八条，写
 | 06 情景 | 接下来有哪些分支 | 4 张情景卡，概率合计 100%，给加权期望 |
 | 07 观察 | 我该盯什么 | 可勾选清单，每项带日期或触发条件 |
 
-**步数不是装饰**：导航条、编号、正文左边缘必须**对齐**（见第六节）。折叠模式下编号不能跳号。
+**步数不是装饰**：导航条、编号、正文左边缘必须**对齐**（见第六节）。折叠时被隐藏的步骤，其 chip 必须变灰且仍可点回，否则编号会跳空。
 
 ## 三、交互组件配方
 
@@ -86,12 +87,12 @@ checkbox + 进度计数 + localStorage 记忆。每项写清「看什么数字�
 
 ```css
 :root{
-  --paper:#faf9f7; --panel:#fff; --ink:#16181d; --ink2:#4a4f57; --ink3:#7d838c;
-  --line:#e3e0da; --line2:#c9c5be;
-  --up:#b23a2f; --down:#1d7a5f;          /* 中文报告习惯：红涨绿跌 */
-  --acc:#16181d; --warn:#8a5a12;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --sans:"Inter","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  --paper:#fbfaf7; --paper2:#f3f1ec; --ink:#16181c; --ink2:#4a4f57; --ink3:#7c828b;
+  --line:#e2ded6; --line2:#d3cec4;
+  --up:#b23a2f; --down:#1b6b52;   /* 中文报告习惯：红涨绿跌 */
+  --accent:#8a6a2f;               /* 全页唯一的第二强调色（金棕） */
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:"Inter","Helvetica Neue",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
 }
 ```
 
@@ -134,7 +135,7 @@ checkbox + 进度计数 + localStorage 记忆。每项写清「看什么数字�
 - [ ] 折叠模式：chip 变灰、点灰 chip 自动展开
 - [ ] 每个交互控件都能在不操作时读通
 - [ ] 桌面 + 420px 窄屏都无横向溢出
-- [ ] 关闭 JS 后仍能读到结论（内容不依赖 JS 渲染）
+- [ ] 正文结论与数字必须写死在 HTML 里（图表、滑块、折叠等交互层可以依赖 JS）
 - [ ] 文末有数据源、口径说明、免责声明
 
 ## 八、自检脚本
@@ -143,9 +144,9 @@ checkbox + 进度计数 + localStorage 记忆。每项写清「看什么数字�
 bun run skills/ste-interactive-report/scripts/selfcheck.ts path/to/report.html 8820
 ```
 
-做四件事：起本地服务 → 抓 JS 报错 → 跑断言（无溢出／步数对齐／chip 跳转／折叠模式／滑块联动／情景卡／清单计数／窄屏）→ 分段截图到 `shots/`。退出码 0 为通过。
+做四件事：起本地服务 → 抓 JS 报错（监听在 load 之后注入，只覆盖交互期间） → 跑断言（无溢出／步数对齐／chip 跳转／折叠模式／滑块联动／情景卡／清单计数／窄屏）→ 分段截图到 `shots/`。退出码 0 为通过。
 断言按元素存在性跳过，所以同一脚本也能验别的报告页。
 
 ## 九、参考实例
 
-`reference/lite-report-example.html` — 一份真实单票研究报告，七个步骤、七个交互件、约 1100 行，直接可跑自检。改数据时只动 `<script>` 块的 `const DATA` 与正文数字，结构与样式不用碰。
+`reference/lite-report-example.html` — 一份真实单票研究报告，七个步骤、七个交互件、约 800 行，直接可跑自检。改数据时只动 `<script>` 块的 `const D` 与正文数字，结构与样式不用碰。
