@@ -1,0 +1,192 @@
+/* ============================================================================
+   Admin Console UI — design tokens (normative)
+   唯一权威定义。Tailwind v4 项目：把「@theme 映射」块贴进全局样式表即可；
+   非 Tailwind 项目：直接用 :root 变量 + 文末的组件基类。
+   改动这里就是改动整个控制台的观感——不要在各页面里另写色值。
+   ========================================================================== */
+
+:root {
+  /* —— 表面与文字 —— */
+  --background: #f7f8fa;          /* 页面底：偏冷的近白，不是纯白 */
+  --foreground: #0f172a;          /* 标题与主要文字：蓝灰近黑 */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f3f7;               /* 次级底、hover 底、元数据块 */
+  --muted-foreground: #64748b;    /* 说明文字、表头、标签 */
+  --subtle-foreground: #94a3b8;   /* 时间戳、序号等三级信息 */
+
+  /* —— 描边 —— */
+  --border: #e3e7ee;              /* 默认卡片/表格描边 */
+  --border-strong: #d3d9e3;       /* hover、分隔强调 */
+  --input: #e3e7ee;
+
+  /* —— 主色（唯一的强蓝）—— */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --primary-soft: #eff4ff;        /* = bg-primary/10，侧栏选中、图标底 */
+  --ring: rgba(37, 99, 235, 0.38);
+
+  /* —— 状态色：三档（soft 底 / 主色 / 深字）—— */
+  --success: #059669;   --success-soft: #ecfdf5;   --success-ink: #047857;
+  --warning: #d97706;   --warning-soft: #fffaeb;   --warning-ink: #b45309;
+  --info:    #0ea5e9;   --info-soft:    #f0f9ff;   --info-ink:    #0369a1;
+  --destructive: #dc2626; --destructive-soft: #fef2f2; --destructive-ink: #b91c1c;
+
+  /* —— 图标块（柔和对色，仅用于 stat/object 卡的身份标记）—— */
+  --tile-sky-bg: #e0f2fe;     --tile-sky-ink: #0369a1;
+  --tile-violet-bg: #ede9fe;  --tile-violet-ink: #6d28d9;
+  --tile-amber-bg: #fef3c7;   --tile-amber-ink: #b45309;
+  --tile-emerald-bg: #d1fae5; --tile-emerald-ink: #047857;
+  --tile-slate-bg: #eef1f5;   --tile-slate-ink: #475569;
+
+  /* —— 几何 —— */
+  --radius-sm: 6px;
+  --radius-md: 8px;    /* 控件 */
+  --radius-lg: 10px;   /* 内嵌块、元数据行 */
+  --radius-xl: 12px;   /* 卡片 —— 唯一允许的卡片圆角 */
+  --radius-2xl: 16px;  /* 登录卡、对话框 */
+  --radius-full: 999px;/* 徽标、头像 */
+  --control-h: 36px;   /* = h-9，所有输入/按钮/选择器统一高度 */
+  --control-h-sm: 28px;
+  --sidebar-w: 256px;  /* = w-64 */
+  --header-h: 64px;    /* = h-16 */
+  --content-max: 1280px; /* = max-w-7xl */
+  --pad-page: 24px;    /* 主区左右内边距（md 起 32px） */
+  --gap-section: 24px; /* = space-y-6 */
+  --gap-card: 16px;    /* = gap-4 */
+
+  /* —— 阴影：极轻，只有三层 —— */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.09), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+
+  /* —— 字体与字阶 —— */
+  --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+               "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
+  --text-xs: 12px;    /* 徽标、表头、元数据 */
+  --text-sm: 13px;    /* 表格正文、说明 */
+  --text-base: 14px;  /* 正文（管理台基准字号，不是 16） */
+  --text-lg: 16px;    /* 卡片标题 */
+  --text-xl: 20px;
+  --text-2xl: 24px;   /* 页面标题 */
+  --text-3xl: 30px;   /* KPI 数值 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.55;
+
+  /* —— 动效：只允许颜色、行 hover、卡片微抬 —— */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+}
+
+/* ============================================================================
+   Tailwind v4 映射（贴进 app/src/styles.css，替换 @@ 处路径）
+   —— 没有这一段，bg-card / border-border / bg-primary/10 全部静默失效，
+      项目里只剩 rounded-* 生效，这就是“只做成圆角”的原因。
+   ============================================================================
+@import "tailwindcss";
+
+@theme {
+  --color-background: #f7f8fa;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f1f3f7;
+  --color-muted-foreground: #64748b;
+  --color-subtle-foreground: #94a3b8;
+  --color-border: #e3e7ee;
+  --color-input: #e3e7ee;
+  --color-primary: #2563eb;
+  --color-primary-foreground: #ffffff;
+  --color-destructive: #dc2626;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-info: #0ea5e9;
+
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+               "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.09), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+   ============================================================================ */
+
+/* ============================================================================
+   非 Tailwind 项目的组件基类（参考页用的就是这一套；类名可直接搬进 @layer components）
+   状态徽标只允许走下面的 tone 类，页面里不要写死颜色。
+   ========================================================================== */
+
+.ac-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+.ac-card--lift { transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.ac-card--lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.ac-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: var(--control-h); padding: 0 14px;
+  border-radius: var(--radius-md);
+  font: 500 var(--text-base)/1 var(--font-sans);
+  border: 1px solid transparent;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+  cursor: pointer;
+}
+.ac-btn--primary {
+  background: var(--primary); color: var(--primary-foreground);
+  box-shadow: var(--shadow-xs);
+}
+.ac-btn--primary:hover { background: var(--primary-hover); }
+.ac-btn--outline { background: var(--card); border-color: var(--border); color: var(--foreground); box-shadow: var(--shadow-xs); }
+.ac-btn--outline:hover { background: var(--muted); border-color: var(--border-strong); }
+.ac-btn--ghost { background: transparent; color: var(--muted-foreground); }
+.ac-btn--ghost:hover { background: var(--muted); color: var(--foreground); }
+
+/* 状态徽标：底色 soft + 深字 ink，绝不整块高饱和填充 */
+.ac-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 22px; padding: 0 9px;
+  border-radius: var(--radius-full);
+  font: 500 var(--text-xs)/1 var(--font-sans);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.ac-badge--muted       { background: var(--muted);           color: var(--muted-foreground); border-color: var(--border); }
+.ac-badge--info        { background: var(--info-soft);        color: var(--info-ink); }
+.ac-badge--warning     { background: var(--warning-soft);     color: var(--warning-ink); }
+.ac-badge--success     { background: var(--success-soft);     color: var(--success-ink); }
+.ac-badge--destructive { background: var(--destructive-soft); color: var(--destructive-ink); }
+.ac-badge--outline     { background: var(--card);             color: var(--muted-foreground); border-color: var(--border); }
+
+.ac-meta-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 10px 16px;
+  font-size: var(--text-sm);
+}

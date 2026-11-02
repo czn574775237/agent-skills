@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Console — 参考实现（工作台）</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  /* 这一页只演示「怎么用 tokens.css」：所有颜色/圆角/阴影都来自变量，
+     没有一处硬编码色值。类名与 SKILL.md 的 Tailwind 配方一一对应。 */
+  * ,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    background:var(--background); color:var(--foreground);
+    font-family:var(--font-sans); font-size:var(--text-base); line-height:var(--leading-normal);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  a{ color:inherit; text-decoration:none; }
+  button,input,select{ font:inherit; color:inherit; }
+  :focus-visible{ outline:2px solid var(--ring); outline-offset:2px; border-radius:var(--radius-sm); }
+  .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .mono{ font-family:var(--font-mono); font-size:var(--text-xs); letter-spacing:-.01em; color:var(--muted-foreground); }
+  .muted{ color:var(--muted-foreground); }
+  .subtle{ color:var(--subtle-foreground); }
+  .ico{ width:16px; height:16px; flex:0 0 auto; stroke:currentColor; fill:none; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+  .ico-lg{ width:18px; height:18px; }
+  .ico-xl{ width:20px; height:20px; }
+
+  /* ——— app shell ——— */
+  .app{ display:flex; min-height:100vh; }
+  .sidebar{
+    position:fixed; inset:0 auto 0 0; width:var(--sidebar-w); z-index:20;
+    background:var(--card); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:14px 12px 12px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 16px; }
+  .brand-tile{
+    width:34px; height:34px; border-radius:var(--radius-md); flex:0 0 auto;
+    background:var(--primary); color:var(--primary-foreground);
+    display:grid; place-items:center; box-shadow:var(--shadow-xs);
+  }
+  .brand-name{ font-size:var(--text-base); font-weight:600; letter-spacing:-.01em; line-height:1.2; white-space:nowrap; }
+  .brand-tag{ font-size:var(--text-xs); color:var(--subtle-foreground); line-height:1.3; white-space:nowrap; }
+  .nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav a{
+    display:flex; align-items:center; gap:10px; height:var(--control-h); padding:0 10px;
+    border-radius:var(--radius-md); color:var(--muted-foreground); font-size:var(--text-sm); font-weight:500;
+    transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .nav a:hover{ background:var(--muted); color:var(--foreground); }
+  .nav a[aria-current="page"]{ background:var(--primary-soft); color:var(--primary); }
+  .sidebar-foot{ margin-top:auto; padding-top:12px; border-top:1px solid var(--border); }
+  .ws-block{ background:color-mix(in srgb,var(--muted) 60%,transparent); border-radius:var(--radius-lg); padding:9px 12px; }
+  .ws-label{ font-size:11px; color:var(--subtle-foreground); letter-spacing:.04em; text-transform:uppercase; }
+  .ws-name{ font-size:var(--text-sm); font-weight:600; margin-top:2px; }
+  .ws-mail{ font-size:var(--text-xs); color:var(--muted-foreground); }
+  .logout{
+    margin-top:8px; display:flex; align-items:center; gap:8px; width:100%;
+    height:var(--control-h); padding:0 10px; border:0; border-radius:var(--radius-md);
+    background:transparent; color:var(--muted-foreground); font-size:var(--text-sm); cursor:pointer;
+    transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .logout:hover{ background:var(--muted); color:var(--destructive); }
+
+  .shell{ flex:1; min-width:0; margin-left:var(--sidebar-w); display:flex; flex-direction:column; }
+  .topbar{
+    position:sticky; top:0; z-index:10; height:var(--header-h);
+    display:flex; align-items:center; gap:12px; padding:0 var(--pad-page);
+    background:color-mix(in srgb,var(--background) 90%,transparent);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--border);
+  }
+  .topbar-brand{ display:none; align-items:center; gap:8px; }
+  .topbar-brand .brand-tile{ width:28px; height:28px; border-radius:var(--radius-sm); }
+  .ctx{ display:flex; align-items:center; gap:8px; font-size:var(--text-sm); font-weight:500; white-space:nowrap; }
+  .ctx .ico{ color:var(--muted-foreground); }
+  .topbar-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .locale{
+    display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 8px; white-space:nowrap;
+    border:1px solid var(--border); border-radius:var(--radius-md); background:var(--card);
+    box-shadow:var(--shadow-xs); cursor:pointer; font-size:var(--text-xs); font-weight:600; color:var(--muted-foreground);
+  }
+  .locale:hover{ background:var(--muted); color:var(--foreground); }
+  .locale .on{ color:var(--foreground); }
+  .locale .sep{ color:var(--border-strong); }
+  .role{
+    display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 10px;
+    border:1px solid var(--border); border-radius:var(--radius-full); background:var(--card);
+    box-shadow:var(--shadow-xs); font-size:var(--text-xs); font-weight:500; color:var(--muted-foreground);
+  }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--success); box-shadow:0 0 0 3px var(--success-soft); }
+
+  .chips{ display:none; gap:8px; padding:0 var(--pad-page) 12px; overflow-x:auto; scrollbar-width:none; }
+  .chips::-webkit-scrollbar{ display:none; }
+  .chips a{
+    flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px;
+    border:1px solid var(--border); border-radius:var(--radius-full); background:var(--card);
+    font-size:var(--text-xs); font-weight:500; color:var(--muted-foreground);
+  }
+  .chips a[aria-current="page"]{ background:var(--primary-soft); border-color:transparent; color:var(--primary); }
+
+  main{ width:100%; max-width:var(--content-max); margin:0 auto; padding:var(--gap-section) var(--pad-page) 56px; }
+  .page-head{ display:flex; align-items:flex-start; gap:16px; justify-content:space-between; }
+  .page-title{ margin:0; font-size:var(--text-2xl); font-weight:600; letter-spacing:-.015em; line-height:1.2; }
+  .page-sub{ margin:6px 0 0; font-size:var(--text-sm); color:var(--muted-foreground); }
+  .stack{ display:flex; flex-direction:column; gap:var(--gap-section); margin-top:var(--gap-section); }
+  .row{ display:grid; gap:var(--gap-card); }
+  /* 关键：grid/flex 子项默认 min-width:auto，会被表格的 min-width 顶破页面 */
+  .row > *{ min-width:0; }
+  .row--kpi{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .row--split{ grid-template-columns:1.5fr 1fr; align-items:start; }
+
+  /* ——— stat card ——— */
+  .kpi{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px; }
+  .kpi-label{ font-size:var(--text-sm); color:var(--muted-foreground); }
+  .kpi-value{
+    margin-top:8px; font-size:var(--text-3xl); font-weight:600; letter-spacing:-.025em; line-height:1.05;
+    font-variant-numeric:tabular-nums;
+  }
+  .tile{ width:44px; height:44px; border-radius:var(--radius-lg); display:grid; place-items:center; flex:0 0 auto; }
+  .tile--sky{ background:var(--tile-sky-bg); color:var(--tile-sky-ink); }
+  .tile--violet{ background:var(--tile-violet-bg); color:var(--tile-violet-ink); }
+  .tile--amber{ background:var(--tile-amber-bg); color:var(--tile-amber-ink); }
+  .tile--emerald{ background:var(--tile-emerald-bg); color:var(--tile-emerald-ink); }
+  .tile--slate{ background:var(--tile-slate-bg); color:var(--tile-slate-ink); }
+
+  /* ——— card head ——— */
+  .card-head{ display:flex; align-items:flex-start; gap:12px; padding:16px 20px 14px; }
+  .card-title{ margin:0; font-size:var(--text-lg); font-weight:600; letter-spacing:-.01em; }
+  .card-sub{ margin:4px 0 0; font-size:var(--text-xs); color:var(--muted-foreground); }
+  .card-head .ac-btn{ margin-left:auto; }
+  .link{
+    display:inline-flex; align-items:center; gap:4px; height:28px; padding:0 8px;
+    border-radius:var(--radius-md); font-size:var(--text-xs); font-weight:500; color:var(--muted-foreground);
+    transition:background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .link:hover{ background:var(--muted); color:var(--primary); }
+
+  /* ——— table ——— */
+  .table-wrap{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; min-width:520px; }
+  thead th{
+    text-align:left; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted-foreground); padding:8px 20px; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    background:color-mix(in srgb,var(--muted) 45%,transparent); white-space:nowrap;
+  }
+  tbody td{ padding:11px 20px; font-size:var(--text-sm); border-bottom:1px solid color-mix(in srgb,var(--border) 65%,transparent); }
+  tbody tr{ transition:background var(--dur-fast) var(--ease); }
+  tbody tr:hover{ background:color-mix(in srgb,var(--muted) 55%,transparent); }
+  tbody tr:last-child td{ border-bottom:0; }
+  td.num{ color:var(--subtle-foreground); font-size:var(--text-xs); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .cell-link{ font-weight:500; }
+  .cell-link:hover{ text-decoration:underline; text-underline-offset:2px; }
+
+  /* ——— 右栏 ——— */
+  .panel-body{ padding:0 16px 16px; display:flex; flex-direction:column; gap:8px; }
+  .note{
+    margin-top:4px; border:1px dashed var(--border-strong); border-radius:var(--radius-lg);
+    padding:10px 12px; font-size:var(--text-xs); color:var(--muted-foreground); background:var(--card);
+  }
+  .state-grid{ display:grid; gap:var(--gap-card); grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .state-box{ padding:16px; border-radius:var(--radius-lg); }
+  .state-box h4{ margin:0 0 6px; font-size:var(--text-xs); font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--subtle-foreground); }
+  .state-box p{ margin:0; font-size:var(--text-sm); color:var(--muted-foreground); }
+  .skel{ height:10px; border-radius:var(--radius-full); background:var(--muted); }
+  .skel + .skel{ margin-top:8px; width:70%; }
+  .state--error{ background:var(--destructive-soft); }
+  .state--error p{ color:var(--destructive-ink); }
+  .state--empty{ border:1px dashed var(--border-strong); background:color-mix(in srgb,var(--card) 40%,transparent); text-align:center; }
+  .state--empty .ico{ color:var(--subtle-foreground); }
+
+  /* ——— dialog ——— */
+  dialog{
+    width:min(480px,calc(100vw - 32px)); padding:0; border:1px solid var(--border);
+    border-radius:var(--radius-2xl); background:var(--card); box-shadow:var(--shadow-md); color:var(--foreground);
+  }
+  dialog::backdrop{ background:rgba(15,23,42,.32); backdrop-filter:blur(2px); }
+  .dlg-head{ display:flex; align-items:flex-start; gap:12px; padding:20px 20px 0; }
+  .dlg-title{ margin:0; font-size:var(--text-lg); font-weight:600; }
+  .dlg-sub{ margin:4px 0 0; font-size:var(--text-sm); color:var(--muted-foreground); }
+  .dlg-x{ margin-left:auto; width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:var(--radius-sm); background:transparent; color:var(--muted-foreground); cursor:pointer; }
+  .dlg-x:hover{ background:var(--muted); color:var(--foreground); }
+  .dlg-body{ padding:16px 20px 0; display:flex; flex-direction:column; gap:14px; }
+  .dlg-foot{ display:flex; justify-content:flex-end; gap:8px; padding:18px 20px 20px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field > label{ font-size:var(--text-sm); font-weight:500; }
+  .field-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .input,.select{
+    height:var(--control-h); padding:0 12px; border:1px solid var(--input); border-radius:var(--radius-md);
+    background:var(--card); box-shadow:var(--shadow-xs); font-size:var(--text-sm); width:100%;
+    transition:border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
+  .input::placeholder{ color:var(--subtle-foreground); }
+  .input:focus,.select:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--ring); }
+  .input-wrap{ position:relative; }
+  .input-wrap .ico{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--subtle-foreground); pointer-events:none; }
+  .input-wrap .input{ padding-left:34px; }
+  .hint{ font-size:var(--text-xs); color:var(--subtle-foreground); }
+  .upload{ position:relative; overflow:hidden; }
+  .upload input[type=file]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  /* ——— toast ——— */
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%,12px); z-index:60;
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:var(--radius-md);
+    background:#0f172a; color:#f8fafc; font-size:var(--text-sm); box-shadow:var(--shadow-md);
+    opacity:0; pointer-events:none; transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .toast[data-show="1"]{ opacity:1; transform:translate(-50%,0); }
+  .toast .ico{ color:#34d399; }
+
+  /* ——— 响应式 ——— */
+  @media (max-width:1279px){ .row--kpi{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:1023px){
+    .sidebar{ display:none; }
+    .shell{ margin-left:0; }
+    .topbar-brand{ display:flex; }
+    .chips{ display:flex; }
+    .row--split{ grid-template-columns:1fr; }
+    .state-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width:639px){
+    :root{ --pad-page:16px; }
+    .row--kpi{ grid-template-columns:1fr; }
+    .page-head{ flex-direction:column; }
+    .page-head .ac-btn{ width:100%; justify-content:center; }
+    .kpi-value{ font-size:26px; }
+    .ctx{ display:none; }
+    .topbar-brand .brand-name{ display:none; }
+    .role{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></symbol>
+  <symbol id="i-checks" viewBox="0 0 24 24"><path d="m3 7 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8M13 12h8M13 18h8"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-4-2-8-2v14c4 0 6 .5 8 2 2-1.5 4-2 8-2V4c-4 0-6 .5-8 2Z"/><path d="M12 6v14"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8Z"/><path d="M18 15l.9 2.3 2.3.9-2.3.9L18 21l-.9-2.3-2.3-.9 2.3-.9Z"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15a1.6 1.6 0 0 0-1.5-1H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 7 4.6h.1A1.6 1.6 0 0 0 8 3V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5Z"/></symbol>
+  <symbol id="i-layer" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 9 5-5 5 5M12 4v12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></symbol>
+</svg>
+
+<div class="app">
+  <!-- ——— 侧栏（桌面） ——— -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-tile" aria-hidden="true">
+        <svg class="ico ico-lg"><use href="#i-spark"/></svg>
+      </div>
+      <div>
+        <div class="brand-name" data-i18n="brand">YHD CDR 翻译</div>
+        <div class="brand-tag" data-i18n="brandTag">CorelDRAW 翻译工作台</div>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="主导航" data-i18n-aria="navLabel">
+      <a href="#" aria-current="page"><svg class="ico"><use href="#i-grid"/></svg><span data-i18n="nav.workbench">工作台</span></a>
+      <a href="#"><svg class="ico"><use href="#i-folder"/></svg><span data-i18n="nav.projects">项目</span></a>
+      <a href="#"><svg class="ico"><use href="#i-clip"/></svg><span data-i18n="nav.orders">工作单</span></a>
+      <a href="#"><svg class="ico"><use href="#i-checks"/></svg><span data-i18n="nav.jobs">翻译任务</span></a>
+      <a href="#"><svg class="ico"><use href="#i-book"/></svg><span data-i18n="nav.glossary">词库</span></a>
+      <a href="#"><svg class="ico"><use href="#i-layer"/></svg><span data-i18n="nav.agent">Agent 服务</span></a>
+      <a href="#"><svg class="ico"><use href="#i-cog"/></svg><span data-i18n="nav.settings">设置</span></a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="ws-block">
+        <div class="ws-label" data-i18n="tenant">客户</div>
+        <div class="ws-name">YHD Demo Tenant</div>
+        <div class="ws-mail">admin@yhd.com</div>
+      </div>
+      <button class="logout" type="button">
+        <svg class="ico"><use href="#i-out"/></svg><span data-i18n="logout">退出登录</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="shell">
+    <!-- ——— 顶栏 ——— -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-tile" aria-hidden="true"><svg class="ico"><use href="#i-spark"/></svg></div>
+        <span class="brand-name" style="font-size:var(--text-sm)" data-i18n="brand">YHD CDR 翻译</span>
+      </div>
+      <div class="ctx">
+        <svg class="ico"><use href="#i-layer"/></svg>
+        <span>YHD Demo Tenant</span>
+      </div>
+      <div class="topbar-right">
+        <button class="locale" type="button" id="localeBtn" aria-label="切换语言 / Switch language">
+          <svg class="ico" style="width:14px;height:14px"><use href="#i-globe"/></svg>
+          <span class="on" data-locale="zh">中文</span><span class="sep">/</span><span data-locale="en">EN</span>
+        </button>
+        <span class="role"><span class="dot" aria-hidden="true"></span><span data-i18n="role.owner">owner</span></span>
+      </div>
+    </header>
+
+    <!-- ——— 移动端导航 ——— -->
+    <nav class="chips" aria-label="主导航" data-i18n-aria="navLabel">
+      <a href="#" aria-current="page"><svg class="ico" style="width:14px;height:14px"><use href="#i-grid"/></svg><span data-i18n="nav.workbench">工作台</span></a>
+      <a href="#"><span data-i18n="nav.projects">项目</span></a>
+      <a href="#"><span data-i18n="nav.orders">工作单</span></a>
+      <a href="#"><span data-i18n="nav.jobs">翻译任务</span></a>
+      <a href="#"><span data-i18n="nav.glossary">词库</span></a>
+      <a href="#"><span data-i18n="nav.agent">Agent 服务</span></a>
+      <a href="#"><span data-i18n="nav.settings">设置</span></a>
+    </nav>
+
+    <main>
+      <!-- 1. 页面头：一个标题 + 一句说明 + 右侧动作（全页只一个 primary） -->
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" data-i18n="page.title">工作台</h1>
+          <p class="page-sub" data-i18n="page.sub">查看项目、文件、任务与词库概况</p>
+        </div>
+        <button class="ac-btn ac-btn--primary" type="button" id="newProject">
+          <svg class="ico"><use href="#i-plus"/></svg><span data-i18n="page.action">新建项目</span>
+        </button>
+      </div>
+
+      <div class="stack">
+        <!-- 2. KPI 行 -->
+        <div class="row row--kpi">
+          <div class="ac-card ac-card--lift kpi">
+            <div>
+              <div class="kpi-label" data-i18n="kpi.projects">项目</div>
+              <div class="kpi-value">1</div>
+            </div>
+            <div class="tile tile--sky"><svg class="ico ico-xl"><use href="#i-folder"/></svg></div>
+          </div>
+          <div class="ac-card ac-card--lift kpi">
+            <div>
+              <div class="kpi-label" data-i18n="kpi.files">CDR 文件</div>
+              <div class="kpi-value">5</div>
+            </div>
+            <div class="tile tile--violet"><svg class="ico ico-xl"><use href="#i-clip"/></svg></div>
+          </div>
+          <div class="ac-card ac-card--lift kpi">
+            <div>
+              <div class="kpi-label" data-i18n="kpi.jobs">翻译任务</div>
+              <div class="kpi-value">12</div>
+            </div>
+            <div class="tile tile--amber"><svg class="ico ico-xl"><use href="#i-checks"/></svg></div>
+          </div>
+          <div class="ac-card ac-card--lift kpi">
+            <div>
+              <div class="kpi-label" data-i18n="kpi.terms">词条</div>
+              <div class="kpi-value">5</div>
+            </div>
+            <div class="tile tile--emerald"><svg class="ico ico-xl"><use href="#i-book"/></svg></div>
+          </div>
+        </div>
+
+        <!-- 3. 主表 + 右栏 -->
+        <div class="row row--split">
+          <section class="ac-card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title" data-i18n="recent.title">最近任务</h2>
+                <p class="card-sub" data-i18n="recent.sub">最近 5 条翻译任务与其状态</p>
+              </div>
+              <a class="link" href="#"><span data-i18n="open">打开</span><svg class="ico" style="width:14px;height:14px"><use href="#i-open"/></svg></a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <caption class="sr-only" data-i18n="recent.caption">最近任务列表</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" data-i18n="th.status">状态</th>
+                    <th scope="col" data-i18n="th.job">翻译任务</th>
+                    <th scope="col" data-i18n="th.created">创建时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="ac-badge ac-badge--destructive" data-i18n="st.failed">失败</span></td>
+                    <td><a class="cell-link mono" href="#">79c702f6</a><span class="muted" style="font-size:var(--text-xs)"> · en-US</span></td>
+                    <td class="num">2026-11-01 21:37</td>
+                  </tr>
+                  <tr>
+                    <td><span class="ac-badge ac-badge--destructive" data-i18n="st.failed">失败</span></td>
+                    <td><a class="cell-link mono" href="#">e0b2f6b5</a><span class="muted" style="font-size:var(--text-xs)"> · en-US</span></td>
+                    <td class="num">2026-11-01 21:37</td>
+                  </tr>
+                  <tr>
+                    <td><span class="ac-badge ac-badge--warning" data-i18n="st.partial">部分完成</span></td>
+                    <td><a class="cell-link mono" href="#">6d7f88b8</a><span class="muted" style="font-size:var(--text-xs)"> · en-US</span></td>
+                    <td class="num">2026-11-01 18:37</td>
+                  </tr>
+                  <tr>
+                    <td><span class="ac-badge ac-badge--success" data-i18n="st.done">已完成</span></td>
+                    <td><a class="cell-link mono" href="#">14e21aa2</a><span class="muted" style="font-size:var(--text-xs)"> · en-US</span></td>
+                    <td class="num">2026-11-01 14:58</td>
+                  </tr>
+                  <tr>
+                    <td><span class="ac-badge ac-badge--muted" data-i18n="st.cancelled">已取消</span></td>
+                    <td><a class="cell-link mono" href="#">b50b65c5</a><span class="muted" style="font-size:var(--text-xs)"> · en-US</span></td>
+                    <td class="num">2026-11-01 14:56</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="ac-card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title" data-i18n="service.title">进行中任务</h2>
+                <p class="card-sub" data-i18n="service.sub">服务状态</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="ac-meta-row">
+                <span class="muted" data-i18n="service.running">进行中任务</span>
+                <span class="ac-badge ac-badge--success">0</span>
+              </div>
+              <div class="ac-meta-row">
+                <span class="muted">Mock Agent</span>
+                <span class="ac-badge ac-badge--success" data-i18n="service.online">在线</span>
+              </div>
+              <p class="note" data-i18n="service.note">
+                YHD CDR Translate 是私有部署的 CDR 翻译 CMS：agent 派发通过队列与外部平台对接。
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <!-- 4. 页面状态样例（每个取数页面都必须有这四种） -->
+        <section class="ac-card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" data-i18n="states.title">页面状态</h2>
+              <p class="card-sub" data-i18n="states.sub">取数页面必须同时实现加载、错误、空态</p>
+            </div>
+          </div>
+          <div style="padding:0 16px 16px">
+            <div class="state-grid">
+              <div class="state-box">
+                <h4 data-i18n="states.loading">加载</h4>
+                <div class="skel" style="width:90%"></div>
+                <div class="skel"></div>
+                <div class="skel" style="width:55%"></div>
+              </div>
+              <div class="state-box state--error">
+                <h4 data-i18n="states.error">错误</h4>
+                <p style="display:flex;align-items:center;gap:6px">
+                  <svg class="ico" style="width:14px;height:14px"><use href="#i-alert"/></svg>
+                  <span data-i18n="states.errorText">加载失败</span>
+                </p>
+                <button class="ac-btn ac-btn--outline" type="button" style="margin-top:10px;height:28px;font-size:var(--text-xs)">
+                  <svg class="ico" style="width:14px;height:14px"><use href="#i-refresh"/></svg><span data-i18n="states.retry">重试</span>
+                </button>
+              </div>
+              <div class="state-box state--empty">
+                <svg class="ico ico-xl" style="margin-bottom:6px"><use href="#i-inbox"/></svg>
+                <h4 data-i18n="states.empty">空</h4>
+                <p data-i18n="states.emptyText">还没有任务</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ——— 对话框 + 表单 ——— -->
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form method="dialog" id="newForm">
+    <div class="dlg-head">
+      <div>
+        <h2 class="dlg-title" id="dlgTitle" data-i18n="dlg.title">新建项目</h2>
+        <p class="dlg-sub" data-i18n="dlg.sub">项目用于归组 CDR 文件与翻译任务</p>
+      </div>
+      <button class="dlg-x" type="button" id="dlgClose" aria-label="关闭 / Close">
+        <svg class="ico"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="pname" data-i18n="dlg.name">项目名称</label>
+        <div class="input-wrap">
+          <svg class="ico"><use href="#i-folder"/></svg>
+          <input class="input" id="pname" name="name" required placeholder="B1-2 显示器支架" autocomplete="off">
+        </div>
+      </div>
+      <div class="field-2">
+        <div class="field">
+          <label for="plang" data-i18n="dlg.lang">语言对</label>
+          <select class="select" id="plang" name="lang">
+            <option value="zh-en">zh-CN → en-US</option>
+            <option value="zh-vi">zh-CN → vi-VN</option>
+            <option value="zh-ja">zh-CN → ja-JP</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="powner" data-i18n="dlg.owner">负责人</label>
+          <select class="select" id="powner" name="owner">
+            <option>admin@yhd.com</option>
+            <option>agent-mock</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="dlg.file">源文件</label>
+        <button class="ac-btn ac-btn--outline upload" type="button" style="justify-content:center">
+          <svg class="ico"><use href="#i-up"/></svg><span data-i18n="dlg.fileHint">选择 .cdr 文件</span>
+          <input type="file" accept=".cdr,.pdf" aria-label="选择文件 / Choose file">
+        </button>
+        <span class="hint" data-i18n="dlg.hint">支持 .cdr / .pdf，单文件不超过 500 MB</span>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="ac-btn ac-btn--outline" type="button" id="dlgCancel" data-i18n="dlg.cancel">取消</button>
+      <button class="ac-btn ac-btn--primary" type="submit" id="dlgSubmit" data-i18n="dlg.submit" disabled>创建</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg class="ico"><use href="#i-check"/></svg><span data-i18n="toast.created">项目已创建</span>
+</div>
+
+<script>
+(() => {
+  // ——— 极简 i18n：页面上每一处用户可见文案都走这里 ———
+  const DICT = {
+    zh: {
+      brand: "YHD CDR 翻译", brandTag: "CorelDRAW 翻译工作台", navLabel: "主导航",
+      "nav.workbench": "工作台", "nav.projects": "项目", "nav.orders": "工作单",
+      "nav.jobs": "翻译任务", "nav.glossary": "词库", "nav.agent": "Agent 服务", "nav.settings": "设置",
+      tenant: "客户", logout: "退出登录", "role.owner": "owner",
+      "page.title": "工作台", "page.sub": "查看项目、文件、任务与词库概况", "page.action": "新建项目",
+      "kpi.projects": "项目", "kpi.files": "CDR 文件", "kpi.jobs": "翻译任务", "kpi.terms": "词条",
+      "recent.title": "最近任务", "recent.sub": "最近 5 条翻译任务与其状态", "recent.caption": "最近任务列表",
+      "th.status": "状态", "th.job": "翻译任务", "th.created": "创建时间", open: "打开",
+      "st.failed": "失败", "st.partial": "部分完成", "st.done": "已完成", "st.cancelled": "已取消",
+      "service.title": "进行中任务", "service.sub": "服务状态", "service.running": "进行中任务",
+      "service.online": "在线",
+      "service.note": "YHD CDR Translate 是私有部署的 CDR 翻译 CMS：agent 派发通过队列与外部平台对接。",
+      "states.title": "页面状态", "states.sub": "取数页面必须同时实现加载、错误、空态",
+      "states.loading": "加载", "states.error": "错误", "states.errorText": "加载失败",
+      "states.retry": "重试", "states.empty": "空", "states.emptyText": "还没有任务",
+      "dlg.title": "新建项目", "dlg.sub": "项目用于归组 CDR 文件与翻译任务", "dlg.name": "项目名称",
+      "dlg.lang": "语言对", "dlg.owner": "负责人", "dlg.file": "源文件", "dlg.fileHint": "选择 .cdr 文件",
+      "dlg.hint": "支持 .cdr / .pdf，单文件不超过 500 MB", "dlg.cancel": "取消", "dlg.submit": "创建",
+      "dlg.submitting": "创建中…", "toast.created": "项目已创建"
+    },
+    en: {
+      brand: "YHD CDR Translate", brandTag: "CorelDRAW translation console", navLabel: "Main navigation",
+      "nav.workbench": "Workbench", "nav.projects": "Projects", "nav.orders": "Work orders",
+      "nav.jobs": "Translation jobs", "nav.glossary": "Glossary", "nav.agent": "Agent service", "nav.settings": "Settings",
+      tenant: "Tenant", logout: "Sign out", "role.owner": "owner",
+      "page.title": "Workbench", "page.sub": "Projects, files, jobs and glossary at a glance", "page.action": "New project",
+      "kpi.projects": "Projects", "kpi.files": "CDR files", "kpi.jobs": "Translation jobs", "kpi.terms": "Glossary terms",
+      "recent.title": "Recent jobs", "recent.sub": "Last five translation jobs and their status", "recent.caption": "Recent jobs",
+      "th.status": "Status", "th.job": "Job", "th.created": "Created", open: "Open",
+      "st.failed": "Failed", "st.partial": "Partial", "st.done": "Done", "st.cancelled": "Cancelled",
+      "service.title": "In progress", "service.sub": "Service status", "service.running": "Jobs in progress",
+      "service.online": "Online",
+      "service.note": "YHD CDR Translate is a privately deployed CDR translation CMS: dispatch goes through the queue to the external platform.",
+      "states.title": "Page states", "states.sub": "Every fetched screen ships loading, error and empty states",
+      "states.loading": "Loading", "states.error": "Error", "states.errorText": "Failed to load",
+      "states.retry": "Retry", "states.empty": "Empty", "states.emptyText": "No jobs yet",
+      "dlg.title": "New project", "dlg.sub": "A project groups CDR files and translation jobs", "dlg.name": "Project name",
+      "dlg.lang": "Language pair", "dlg.owner": "Owner", "dlg.file": "Source file", "dlg.fileHint": "Choose a .cdr file",
+      "dlg.hint": "c.dr and .pdf up to 500 MB", "dlg.cancel": "Cancel", "dlg.submit": "Create",
+      "dlg.submitting": "Creating…", "toast.created": "Project created"
+    }
+  };
+  DICT.en["dlg.hint"] = ".cdr and .pdf up to 500 MB";
+
+  let locale = localStorage.getItem("ac-locale") || "zh";
+  const applyLocale = () => {
+    const dict = DICT[locale] || DICT.zh;
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const k = el.dataset.i18n; if (dict[k]) el.textContent = dict[k];
+    });
+    document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+      const k = el.dataset.i18nAria; if (dict[k]) el.setAttribute("aria-label", dict[k]);
+    });
+    document.querySelectorAll("[data-locale]").forEach((el) => {
+      el.classList.toggle("on", el.dataset.locale === locale);
+      el.classList.toggle("muted", el.dataset.locale !== locale);
+    });
+  };
+  applyLocale();
+  document.getElementById("localeBtn").addEventListener("click", () => {
+    locale = locale === "zh" ? "en" : "zh";
+    localStorage.setItem("ac-locale", locale);
+    applyLocale();
+  });
+
+  // ——— 对话框：Escape 原生可用，关闭后焦点回到触发按钮 ———
+  const dlg = document.getElementById("dlg");
+  const trigger = document.getElementById("newProject");
+  const form = document.getElementById("newForm");
+  const submit = document.getElementById("dlgSubmit");
+  const nameInput = document.getElementById("pname");
+  const toast = document.getElementById("toast");
+
+  const syncSubmit = () => { submit.disabled = !nameInput.value.trim(); };
+  nameInput.addEventListener("input", syncSubmit);
+  syncSubmit();
+
+  trigger.addEventListener("click", () => { dlg.showModal(); nameInput.focus(); });
+  document.getElementById("dlgClose").addEventListener("click", () => dlg.close());
+  document.getElementById("dlgCancel").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("close", () => { trigger.focus(); form.reset(); syncSubmit(); });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submit.disabled = true;
+    submit.textContent = (DICT[locale] || DICT.zh)["dlg.submitting"];
+    setTimeout(() => {
+      dlg.close();
+      toast.dataset.show = "1";
+      setTimeout(() => { toast.dataset.show = "0"; }, 2200);
+    }, 700);
+  });
+})();
+</script>
+</body>
+</html>
