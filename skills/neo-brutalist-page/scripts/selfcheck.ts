@@ -5,7 +5,7 @@
 //   bun run selfcheck.ts page.html 8801 --click "#replay" --click "#skip" --wait 900
 //
 // 做的事：起本地 HTTP 服务 → 无缓存打开 → 抓 JS 报错 → 断言无横向溢出/无文字被切
-//        → 点可选的选择器（自动滚进视口）→ 桌面 + 窄屏各截图到脚本同目录的 shots/
+//        → 点可选的选择器（自动滚进视口）→ 桌面 + 窄屏各截图到页面同目录的 shots/
 // 退出码：0 全部通过；1 有问题（明细打在 stdout，截图仍会留下）
 
 import { mkdir } from "node:fs/promises";
