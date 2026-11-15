@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>把 Claude 变成一间 3D 工作室 · 本地复刻记录</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4/dist/model-viewer.min.js"></script>
+<style>
+  :root {
+    --paper: #f4efe6;
+    --card: #fdfbf7;
+    --ink: #2a2521;
+    --ink-soft: #6b615a;
+    --line: rgba(42, 37, 33, 0.12);
+    --terra: #b85c38;
+    --teal: #2f8a80;
+    --amber: #b98a2f;
+    --stone: #98908a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #fbf7ef 0%, transparent 60%),
+      var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 56px 28px 72px; }
+
+  /* ---------- header ---------- */
+  header { max-width: 760px; }
+  .eyebrow {
+    font-size: 13px; letter-spacing: 0.04em; color: var(--terra);
+    font-weight: 600; margin-bottom: 14px;
+  }
+  .eyebrow .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--terra); margin-right: 8px; vertical-align: 1px; }
+  h1 {
+    font-family: "Iowan Old Style", Georgia, "Songti SC", "Noto Serif SC", serif;
+    font-size: clamp(30px, 4.6vw, 46px);
+    line-height: 1.22; font-weight: 600; margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+  h1 em { font-style: normal; color: var(--terra); }
+  .lede { font-size: 16.5px; color: var(--ink-soft); margin: 0; max-width: 640px; }
+  .lede a { color: var(--ink); text-decoration-color: rgba(184, 92, 56, 0.4); text-underline-offset: 3px; }
+
+  /* ---------- main grid ---------- */
+  .main {
+    display: grid; grid-template-columns: 1.08fr 1fr; gap: 30px;
+    margin-top: 44px; align-items: start;
+  }
+  @media (max-width: 860px) {
+    .main { grid-template-columns: 1fr; }
+    .wrap { padding: 36px 18px 56px; }
+  }
+
+  /* ---------- viewer card ---------- */
+  .stage {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background:
+      radial-gradient(120% 90% at 50% 108%, #efe3d2 0%, #fbf8f1 62%, #fefcf8 100%);
+    overflow: hidden;
+    box-shadow: 0 18px 40px -24px rgba(60, 40, 25, 0.35), 0 2px 6px rgba(60, 40, 25, 0.05);
+  }
+  .stage model-viewer { width: 100%; height: 460px; display: block; outline: none; --poster-color: transparent; }
+  @media (max-width: 860px) { .stage model-viewer { height: 400px; } }
+  .stage .tag {
+    position: absolute; top: 14px; left: 16px;
+    font-size: 12px; color: var(--ink-soft);
+    background: rgba(253, 251, 247, 0.85);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px 11px; backdrop-filter: blur(4px);
+  }
+  .stage-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px; border-top: 1px solid var(--line);
+    background: rgba(253, 251, 247, 0.7);
+  }
+  .stage-bar .name { font-size: 13.5px; color: var(--ink-soft); }
+  .stage-bar .name b { color: var(--ink); font-weight: 600; }
+  .btn {
+    font: inherit; font-size: 13.5px; font-weight: 600;
+    color: #fff; background: var(--terra);
+    border: 0; border-radius: 10px; padding: 8px 16px;
+    cursor: pointer; transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .btn:hover { background: #a34f2e; }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost {
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn.ghost:hover { background: rgba(42, 37, 33, 0.05); }
+  .hint { font-size: 12.5px; color: var(--stone); margin-top: 10px; }
+
+  /* ---------- pipeline ---------- */
+  .pipeline h2 {
+    font-family: "Iowan Old Style", Georgia, "Songti SC", serif;
+    font-size: 20px; font-weight: 600; margin: 0 0 4px;
+  }
+  .pipeline .sub { font-size: 13px; color: var(--stone); margin: 0 0 16px; }
+  .step {
+    display: grid; grid-template-columns: 30px 1fr; gap: 12px;
+    padding: 13px 0; border-top: 1px solid var(--line);
+  }
+  .step:last-child { border-bottom: 1px solid var(--line); }
+  .step .idx {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12.5px; font-weight: 700;
+    border: 1px solid var(--line); color: var(--ink-soft);
+    background: var(--card);
+  }
+  .step h3 { margin: 0; font-size: 14.5px; font-weight: 650; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    padding: 1px 8px; border-radius: 999px; border: 1px solid;
+  }
+  .badge.ok { color: var(--teal); border-color: rgba(47, 138, 128, 0.35); background: rgba(47, 138, 128, 0.07); }
+  .badge.alt { color: var(--amber); border-color: rgba(185, 138, 47, 0.35); background: rgba(185, 138, 47, 0.08); }
+  .badge.no { color: var(--stone); border-color: rgba(152, 144, 138, 0.4); background: rgba(152, 144, 138, 0.07); }
+  .step p { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+  .step p .was { color: var(--stone); }
+  .step p code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px; background: rgba(42, 37, 33, 0.055);
+    padding: 1px 5px; border-radius: 5px; color: var(--ink);
+  }
+
+  /* ---------- stats ---------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-top: 40px;
+  }
+  @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    border: 1px solid var(--line); border-radius: 14px;
+    background: var(--card); padding: 14px 16px;
+  }
+  .stat .n {
+    font-family: "Iowan Old Style", Georgia, "Songti SC", serif;
+    font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--ink);
+  }
+  .stat .n small { font-size: 14px; font-weight: 500; color: var(--ink-soft); margin-left: 2px; }
+  .stat .l { font-size: 12.5px; color: var(--stone); margin-top: 3px; }
+
+  /* ---------- footer ---------- */
+  .notes { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 22px; }
+  .notes h2 {
+    font-size: 15px; font-weight: 650; margin: 0 0 10px;
+  }
+  .notes p, .notes li { font-size: 13.5px; color: var(--ink-soft); }
+  .notes ul { margin: 8px 0 0; padding-left: 20px; }
+  .notes li { margin: 4px 0; }
+  .notes code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px;
+    background: rgba(42, 37, 33, 0.055); padding: 1px 5px; border-radius: 5px;
+  }
+  .render-strip { margin-top: 22px; display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .render-strip img {
+    width: 168px; border-radius: 12px; border: 1px solid var(--line);
+    box-shadow: 0 10px 26px -18px rgba(60, 40, 25, 0.5);
+  }
+  .render-strip .cap { font-size: 12.5px; color: var(--stone); max-width: 300px; line-height: 1.6; }
+  footer { margin-top: 48px; font-size: 12px; color: var(--stone); }
+  footer a { color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow"><span class="dot"></span>DeepTechTR 那条推文的本地复刻</div>
+    <h1>把 Claude 变成<br>一间<em> 3D 工作室</em></h1>
+    <p class="lede">
+      推文列了 20 个开源工具，串成「AI 控制 Blender → 生成 mesh → 自动绑骨 → 发布网页」的一条流水线。
+      这一版是在这台 Mac 上真跑出来的结果：能跑通的跑通了，跑不了的换成了本机替代——下面逐环节交代清楚。
+    </p>
+  </header>
+
+  <div class="main">
+
+    <!-- 3D viewer -->
+    <section class="stage" aria-label="可交互的 3D 模型">
+      <model-viewer id="mv"
+        src="robot.glb"
+        alt="奶油白与陶土色的小机器人，右臂举起正在挥手"
+        camera-controls auto-rotate auto-rotate-delay="3500"
+        rotation-per-second="18deg"
+        shadow-intensity="0.85" exposure="0.95"
+        environment-image="neutral"
+        interaction-prompt="auto"
+        touch-action="pan-y">
+      </model-viewer>
+      <div class="tag">可拖拽旋转 · 点两下缩放</div>
+      <div class="stage-bar">
+        <span class="name"><b>robot.glb</b> · 1.4 MB · 带骨架与循环动画</span>
+        <button class="btn" id="waveBtn" type="button">▶ 挥个手</button>
+      </div>
+    </section>
+
+    <!-- pipeline checklist -->
+    <section class="pipeline" aria-label="流水线各环节状态">
+      <h2>五个环节，逐个对账</h2>
+      <p class="sub">✓ 真跑通 &nbsp;·&nbsp; ◐ 本机替代 &nbsp;·&nbsp; ○ 未做（附原因）</p>
+
+      <div class="step">
+        <span class="idx">1</span>
+        <div>
+          <h3>控制 Blender <span class="badge ok">✓ 真跑通</span></h3>
+          <p><span class="was">推文：Blender MCP</span><br>
+            用官方 <code>blender_mcp</code> 插件在 9876 端口收 <code>execute_code</code> 指令，
+            建模/材质/灯光/绑骨/动画全部由这几条指令依次执行完成。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="idx">2</span>
+        <div>
+          <h3>生成 3D 资产 <span class="badge alt">◐ 本机替代</span></h3>
+          <p><span class="was">推文：TRELLIS / Hunyuan3D-2</span><br>
+            两个模型都要求 NVIDIA GPU，这台 M4 跑不动，云 API 也没有可用 key。
+            改用 <code>bpy</code> 程序化建模：20 个部件、6,456 个顶点。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="idx">3</span>
+        <div>
+          <h3>绑定骨骼 <span class="badge alt">◐ 本机替代</span></h3>
+          <p><span class="was">推文：UniRig（自动绑骨）</span><br>
+            同样依赖 GPU，未跑。改用 Blender 骨架 + 按部件分配顶点组蒙皮：
+            4 根骨、2 秒 48 帧循环挥手动画。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="idx">4</span>
+        <div>
+          <h3>扫描现实物体 <span class="badge no">○ 未做</span></h3>
+          <p><span class="was">推文：COLMAP / Meshroom / gsplat</span><br>
+            需要一组真实照片重建，这轮验证流水线没有素材，跳过。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="idx">5</span>
+        <div>
+          <h3>发布到网页 <span class="badge ok">✓ 真跑通</span></h3>
+          <p><span class="was">推文：three.js / React Three Fiber / model-viewer</span><br>
+            正是现在这个可交互的 3D 窗口：由 <code>&lt;model-viewer&gt;</code>
+            直接加载导出的 GLB，自带旋转、缩放与动画播放。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">6,456</div><div class="l">顶点 · 20 个建模部件</div></div>
+    <div class="stat"><div class="n">4 <small>根骨</small></div><div class="l">Root / Head / 左右肩</div></div>
+    <div class="stat"><div class="n">48 <small>帧</small></div><div class="l">24fps 循环挥手 · 2 秒</div></div>
+    <div class="stat"><div class="n">1.4 <small>MB</small></div><div class="l">GLB · 含蒙皮与动画</div></div>
+  </div>
+
+  <section class="notes">
+    <h2>这台机器上实际发生了什么</h2>
+    <ul>
+      <li><b>控制通道</b>：Blender 5.2.1 LTS 以 GUI 模式启动（插件的 server 拒绝在 <code>--background</code> 下工作），
+        客户端按 MCP 协议发 <code>{"type":"execute_code"}</code>，每次执行一段 Python。</li>
+      <li><b>渲染</b>：Cycles + Metal GPU，900×1100、110 采样，单帧约 4–5 分钟。
+        渲染这一步改在 <code>--background</code> 里做——GUI 模式下阻塞渲染会卡住控制通道。</li>
+      <li><b>导出</b>：glTF 2.0 GLB，仅选 Robot + Rig，不含灯光与地面，<code>export_animations</code> 带出 Wave 动作。</li>
+    </ul>
+    <div class="render-strip">
+      <img src="robot-preview.png" alt="Blender Cycles 渲染的机器人静帧">
+      <div class="cap">
+        同一场景的 Cycles 静帧（第 9 帧，挥手最高点）。<br>
+        网页里的 3D 模型是导出的 GLB 实时渲染，这张则是离屏渲染管线跑通的凭证。
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    复刻自 <a href="https://x.com/deeptechtr/status/2121612576005955713" target="_blank" rel="noopener">DeepTechTR 的推文</a> ·
+    Blender 5.2.1 LTS · blender-mcp · model-viewer
+  </footer>
+</div>
+
+<script>
+  const mv = document.getElementById('mv');
+  const btn = document.getElementById('waveBtn');
+  btn.addEventListener('click', () => {
+    if (!mv.availableAnimations || mv.availableAnimations.length === 0) return;
+    mv.play({ repetitions: 2 });
+  });
+</script>
+</body>
+</html>
