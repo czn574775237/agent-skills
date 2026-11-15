@@ -199,7 +199,7 @@ JSON.stringify({vis:document.visibilityState, raf: await new Promise(r=>{request
 ## 七、参考实例
 
 - `reference/showcase-3d-pipeline.html` —— 完整成品（307 行，含两栏骨架、五环节对照、四格统计、说明与页脚）
-- `reference/robot.glb` —— 配套模型（1.4MB，20 部件 6456 顶点 / 4 根骨 / 48 帧挥手）
+- `reference/robot.glb` —— 配套模型（**144 KB，Draco 压缩**；未压缩导出约 1.4MB。20 部件 6456 顶点 / 4 根骨 / 48 帧挥手。Draco 需 model-viewer 从 CDN 取 decoder —— 要求完全离线时请导出未压缩版，并在导出参数里去掉 `export_draco_mesh_compression_enable`）
 - `reference/robot-preview.png` —— Cycles 出图（900×1100）
 
 跑自检：
