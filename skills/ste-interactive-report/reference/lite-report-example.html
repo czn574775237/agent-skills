@@ -1,0 +1,818 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LITE · 分步研究（2026-11-02）</title>
+<style>
+:root{
+  --paper:#fbfaf7; --paper2:#f3f1ec; --ink:#16181c; --ink2:#4a4f57; --ink3:#7c828b;
+  --line:#e2ded6; --line2:#d3cec4; --up:#b23a2f; --down:#1b6b52; --accent:#8a6a2f;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:"Inter","Helvetica Neue",-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.75;letter-spacing:.005em;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.num{font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line2)}
+b,strong{font-weight:650}
+.wrap{max-width:1000px;margin:0 auto;padding:0 28px}
+
+/* ---------- top progress ---------- */
+.topbar{position:fixed;left:0;right:0;top:0;height:44px;background:rgba(251,250,247,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:50;display:flex;align-items:center}
+.topbar .wrap{display:flex;align-items:center;gap:14px;width:100%}
+.tk{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--ink2)}
+.tk b{color:var(--ink);letter-spacing:.02em}
+.chips{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1}
+.chips::-webkit-scrollbar{display:none}
+.chip{font-family:var(--mono);font-size:11.5px;color:var(--ink3);padding:5px 9px;border-radius:2px;
+  white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:.15s}
+.chip:hover{color:var(--ink);background:var(--paper2)}
+.chip.on{color:var(--ink);border-color:var(--line2);background:#fff}
+.chip i{font-style:normal;opacity:.55;margin-right:4px}
+.briefbtn{font-size:12px;color:var(--ink2);border:1px solid var(--line2);background:#fff;
+  padding:5px 10px;border-radius:2px;cursor:pointer;white-space:nowrap}
+.briefbtn:hover{color:var(--ink);border-color:var(--ink3)}
+.prog{position:fixed;left:0;top:44px;height:2px;background:var(--up);width:0;z-index:51;transition:width .12s}
+
+/* ---------- hero ---------- */
+header.hero{padding:104px 0 64px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3)}
+h1{font-size:clamp(30px,5.2vw,52px);line-height:1.14;letter-spacing:-.022em;margin:18px 0 0;font-weight:620}
+h1 em{font-style:normal;color:var(--ink3)}
+.lede{font-size:17px;line-height:1.85;color:var(--ink2);max-width:46em;margin:22px 0 0}
+.lede b{color:var(--ink)}
+.cta{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap}
+.btn{font-size:13.5px;padding:11px 18px;border-radius:2px;cursor:pointer;border:1px solid var(--ink);
+  background:var(--ink);color:#fff;transition:.15s}
+.btn:hover{background:#000}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--ink);background:#fff}
+
+/* ---------- steps ---------- */
+.step{padding:74px 0 20px;border-bottom:1px solid var(--line);scroll-margin-top:58px}
+.step:last-of-type{border-bottom:none}
+.shead{display:block;margin-bottom:10px}
+.snum{display:block;font-family:var(--mono);font-size:11px;color:var(--up);letter-spacing:.16em;margin-bottom:7px}
+h2{font-size:clamp(22px,3vw,30px);line-height:1.3;letter-spacing:-.014em;margin:0;font-weight:620}
+.hint{color:var(--ink3);font-size:13px;margin:0 0 4px;max-width:44em}
+h3{font-size:15px;font-weight:650;margin:34px 0 10px;letter-spacing:.01em}
+p{margin:12px 0;max-width:46em}
+ul.st{margin:12px 0;padding-left:0;list-style:none;max-width:46em}
+ul.st li{position:relative;padding-left:18px;margin:7px 0}
+ul.st li::before{content:"";position:absolute;left:0;top:.72em;width:6px;height:1px;background:var(--ink3)}
+.small{font-size:13px;color:var(--ink3)}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);margin:26px 0 8px;border-radius:3px;overflow:hidden}
+.card{background:var(--paper);padding:16px 16px 15px}
+.card .k{font-size:11.5px;color:var(--ink3);letter-spacing:.04em}
+.card .v{font-family:var(--mono);font-size:25px;letter-spacing:-.03em;margin:7px 0 2px;line-height:1.1}
+.card .s{font-size:11.5px;color:var(--ink3);line-height:1.5}
+
+/* ---------- signal blocks ---------- */
+.sig{border-left:2px solid var(--line2);padding:2px 0 2px 16px;margin:20px 0;max-width:46em}
+.sig .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink3);display:block;margin-bottom:4px}
+.sig.warn{border-left-color:var(--up)} .sig.warn .tag{color:var(--up)}
+.sig.caution{border-left-color:#a8762a} .sig.caution .tag{color:#a8762a}
+.sig.note{border-left-color:var(--ink3)}
+.sig p{margin:0;font-size:14px;color:var(--ink2)}
+
+/* ---------- timeline ---------- */
+.tl{margin:26px 0 0;border-top:1px solid var(--line)}
+.ev{border-bottom:1px solid var(--line)}
+.ev>button{display:grid;grid-template-columns:96px 1fr auto;gap:18px;width:100%;text-align:left;
+  align-items:baseline;background:none;border:0;padding:16px 4px;cursor:pointer;font:inherit;color:inherit}
+.ev>button:hover{background:var(--paper2)}
+.ev .d{font-family:var(--mono);font-size:12px;color:var(--ink3)}
+.ev .t{font-size:14.5px}
+.ev .m{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.ev[open] .t, .ev.on .t{font-weight:600}
+.panel{display:none;padding:0 4px 20px 114px;max-width:52em}
+.ev.on .panel{display:block}
+.panel p{font-size:14px;color:var(--ink2);margin:6px 0}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--ink3)}
+
+/* ---------- tables ---------- */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:16px 0}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:11.5px;letter-spacing:.05em;color:var(--ink3);font-weight:600;border-bottom:1px solid var(--line2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--paper2)}
+tr.hl td{background:#fff;font-weight:600}
+tr.hl td:first-child{box-shadow:inset 2px 0 0 var(--up)}
+caption{caption-side:top;text-align:left;font-size:12px;color:var(--ink3);padding-bottom:6px}
+
+/* ---------- segmented ---------- */
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden;margin:14px 0 4px}
+.seg button{font:inherit;font-size:12.5px;padding:6px 14px;background:#fff;border:0;cursor:pointer;color:var(--ink2)}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* ---------- figures ---------- */
+.fig{position:relative;margin:26px 0 8px;border:1px solid var(--line);border-radius:3px;background:var(--paper)}
+.fcap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 14px 6px;font-size:12px;color:var(--ink3)}
+.fig svg{display:block;width:100%;height:auto}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3);padding:0 14px 12px}
+.lg i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px;border-radius:1px}
+.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line2);border-radius:3px;
+  padding:8px 10px;font-size:12px;line-height:1.55;box-shadow:0 4px 14px rgba(0,0,0,.07);opacity:0;
+  transition:opacity .1s;white-space:nowrap;font-variant-numeric:tabular-nums;z-index:5}
+.tip.on{opacity:1}
+
+/* ---------- valuation lab ---------- */
+.lab{border:1px solid var(--line2);border-radius:3px;padding:22px;margin:22px 0;background:#fff}
+.labrow{display:grid;grid-template-columns:190px 1fr 96px;gap:16px;align-items:center;margin:14px 0}
+.labrow label{font-size:13px;color:var(--ink2)}
+.labrow output{font-family:var(--mono);font-size:14px;text-align:right}
+.step .hint{scroll-margin-top:58px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:var(--ink);margin-top:-5.5px;cursor:grab}
+input[type=range]::-moz-range-track{height:2px;background:var(--line2)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border:0;border-radius:50%;background:var(--ink);cursor:grab}
+.labout{display:flex;align-items:baseline;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.labout .big{font-family:var(--mono);font-size:38px;letter-spacing:-.04em;line-height:1}
+.labout .dl{font-family:var(--mono);font-size:15px}
+.bar{height:8px;background:var(--paper2);border-radius:2px;margin-top:14px;position:relative;overflow:hidden}
+.bar span{position:absolute;left:50%;top:0;bottom:0;background:var(--up)}
+.bar span.neg{background:var(--down)}
+
+/* ---------- scenarios ---------- */
+.scens{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:22px 0 0}
+.scen{border:1px solid var(--line);border-radius:3px;padding:18px;background:var(--paper);cursor:pointer;
+  transition:.15s;position:relative}
+.scen:hover{border-color:var(--line2);background:#fff}
+.scen.on{border-color:var(--ink);background:#fff;box-shadow:0 2px 0 var(--ink)}
+.scen .h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.scen .n{font-size:14.5px;font-weight:650}
+.scen .p{font-family:var(--mono);font-size:12px;color:var(--ink3)}
+.scen .r{font-family:var(--mono);font-size:20px;margin:10px 0 2px;letter-spacing:-.02em}
+.scen .why{font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:8px;display:none}
+.scen.on .why{display:block}
+.expect{margin-top:16px;padding:14px 16px;border:1px dashed var(--line2);border-radius:3px;font-size:13.5px;color:var(--ink2)}
+
+/* ---------- checklist ---------- */
+.chk{margin:20px 0 0;border-top:1px solid var(--line)}
+.chk label{display:grid;grid-template-columns:20px 74px 1fr;gap:14px;align-items:start;
+  padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.chk label:hover{background:var(--paper2)}
+.chk input{margin:5px 0 0;accent-color:var(--up);width:14px;height:14px;cursor:pointer}
+.chk .d{font-family:var(--mono);font-size:12px;color:var(--ink3);padding-top:2px}
+.chk input:checked+.d+.x{color:var(--ink3);text-decoration:line-through}
+.chkbar{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12.5px;color:var(--ink3)}
+.chkbar .t{flex:1;height:2px;background:var(--line);position:relative}
+.chkbar .t i{position:absolute;left:0;top:0;bottom:0;background:var(--up);width:0;transition:width .2s}
+
+/* ---------- appendix ---------- */
+footer{padding:44px 0 64px;color:var(--ink3);font-size:12.5px}
+footer h3{color:var(--ink);font-size:13px;margin-top:26px}
+
+/* ---------- brief mode ---------- */
+body.brief .detail{display:none}
+body.brief .step{border-bottom:none;padding-top:40px}
+
+@media (max-width:820px){
+  #finQ table,#finY table{min-width:620px}
+  .wrap{padding:0 20px}
+  .cards{grid-template-columns:1fr 1fr}
+  .scens{grid-template-columns:1fr}
+  .ev>button{grid-template-columns:78px 1fr;gap:10px}
+  .ev .m{grid-column:2;color:var(--ink3);font-size:11.5px}
+  .panel{padding-left:0}
+  .labrow{grid-template-columns:1fr 60px;gap:8px}
+  .labrow input{grid-column:1/-1;grid-row:2}
+  .hint{margin-left:0}
+  .step{padding-top:52px}
+  header.hero{padding-top:92px}
+}
+body.brief .chip[data-detail]{opacity:.35}
+.vlabel{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--up);margin:24px 0 10px}
+.hstats{display:grid;grid-template-columns:repeat(4,1fr);margin:26px 0 4px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.hstats>div{padding:13px 16px 13px 0;border-right:1px solid var(--line)}
+.hstats>div:last-child{border-right:0}
+.hstats .hk{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--ink3)}
+.hstats b{display:block;font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:5px}
+.hstats i{display:block;font-style:normal;font-size:11.5px;color:var(--ink3);margin-top:2px}
+@media(max-width:700px){
+  .hstats{grid-template-columns:1fr 1fr}
+  .hstats>div:nth-child(2){border-right:0}
+  .hstats>div:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .hstats b{font-size:17px}
+}
+
+@media print{
+  .topbar,.prog,.cta,.briefbtn{display:none}
+  body{background:#fff}
+  .step{page-break-inside:avoid}
+  .ev .panel{display:block !important}
+  .scen .why{display:block !important}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <div class="tk"><b>LITE</b> · Lumentum</div>
+  <div class="chips" id="chips">
+    <div class="chip" data-t="s1"><i>01</i>结论</div>
+    <div class="chip" data-t="s2"><i>02</i>事件</div>
+    <div class="chip" data-t="s3" data-detail="1"><i>03</i>财务</div>
+    <div class="chip" data-t="s4" data-detail="1"><i>04</i>价格</div>
+    <div class="chip" data-t="s5" data-detail="1"><i>05</i>估值</div>
+    <div class="chip" data-t="s6" data-detail="1"><i>06</i>情景</div>
+    <div class="chip" data-t="s7"><i>07</i>观察</div>
+  </div>
+  <button class="briefbtn" id="brief">只看结论</button>
+</div></div>
+<div class="prog" id="prog"></div>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">单票研究 · Lumentum Holdings · 纳斯达克 LITE</div>
+  <div class="vlabel">结论</div>
+  <h1><em>估值能被增长消化，</em><br>方向由 11 月 5 日的财报给出。</h1>
+  <p class="lede">
+    FY27 预期市盈率 42.5 倍，对应 EPS 预期增速 128%。四个情景加权后，12 个月期望价 <b>864 美元</b>，比现价高 3%。
+    上行与下行的概率接近，下行的幅度更大。
+  </p>
+  <div class="hstats">
+    <div><span class="hk">收盘 · 10-30</span><b>$840.70</b><i>当日 −8.57%</i></div>
+    <div><span class="hk">FY27 预期 P/E</span><b>42.5×</b><i>5 年均值 30×</i></div>
+    <div><span class="hk">目标价均值</span><b>$1,170</b><i>26 家，较现价 +39%</i></div>
+    <div><span class="hk">下一催化</span><b>11-05</b><i>FQ1 财报，盘后</i></div>
+  </div>
+  <div class="cta">
+    <button class="btn" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">从第 1 步开始</button>
+    <button class="btn ghost" id="brief2">只看结论（约 1 分钟）</button>
+  </div>
+  <p class="small" style="margin-top:22px">数据截止 2026-10-30 收盘。价格为美元。财务数据来自公司财报与 SEC 文件。</p>
+</div></header>
+
+<main class="wrap">
+
+<!-- ================= 01 ================= -->
+<section class="step" id="s1">
+  <div class="shead"><div class="snum">01 / 07</div><h2>结论：三句话</h2></div>
+  <p class="hint">看四个数字，再读三句话。不需要背景知识。</p>
+
+  <div class="cards">
+    <div class="card"><div class="k">近一年涨幅</div><div class="v up">+292%</div><div class="s">年初至今 +128%</div></div>
+    <div class="card"><div class="k">近一年最大回撤</div><div class="v down">−42.8%</div><div class="s">7-29 见底，10 月创新高</div></div>
+    <div class="card"><div class="k">财报次日平均波动</div><div class="v">9.1%</div><div class="s">过去 10 次</div></div>
+    <div class="card"><div class="k">空头占股本</div><div class="v">8.5%</div><div class="s">1.5 日回补</div></div>
+  </div>
+
+  <h3>三句话</h3>
+  <ul class="st">
+    <li><b>公司增长很快。</b>FY26 营收 30.14 亿美元，同比 +83%。FQ4 单季营收首破 10 亿美元。</li>
+    <li><b>市场正在定价一份收购报价。</b>10 月 28 日彭博社报道 Marvell 的收购谈判。公司没有确认。</li>
+    <li><b>短期方向由 11 月 5 日的财报决定。</b>过去 10 次财报，次日平均波动 9.1%。</li>
+  </ul>
+
+  <div class="sig warn"><span class="tag">警告 / 对价会变</span>
+    <p>这笔交易是全股票方案。LITE 股东拿到的是 MRVL 的股票。MRVL 跌 10%，对价约跌 10%。消息公布后 MRVL 两日跌 22%。</p>
+  </div>
+  <div class="sig note"><span class="tag">注意 / 口径</span>
+    <p>本报告用 non-GAAP 口径做估值。FY26 的 GAAP 净亏损 71.6 亿美元来自一次性非现金损失，不是经营亏损。</p>
+  </div>
+</section>
+
+<!-- ================= 02 ================= -->
+<section class="step" id="s2">
+  <div class="shead"><div class="snum">02 / 07</div><h2>事件：七件事，一条时间线</h2></div>
+  <p class="hint">点任意一行展开。每行只看一个事实。右侧是该日或次日股价变动。</p>
+
+  <div class="tl" id="tl">
+    <div class="ev">
+      <button><span class="d">10-06</span><span class="t">收盘创 52 周新高</span><span class="m flat">1,133.40</span></button>
+      <div class="panel">
+        <p>此前市场已接受 AI 光器件紧缺的叙事。见第 3 步的供给清单。</p>
+        <p>此后股价回落。到 10 月 22 日，跌幅达 33.6%。</p>
+      </div>
+    </div>
+    <div class="ev">
+      <button><span class="d">10-12</span><span class="t">光学板块单日集体下跌</span><span class="m down">−10.0%</span></button>
+      <div class="panel"><p>板块性卖出，没有公司层面的新消息。同日光模块公司多数下跌。</p></div>
+    </div>
+    <div class="ev">
+      <button><span class="d">10-22</span><span class="t">财报前抛售，触及阶段低点</span><span class="m down">752.54</span></button>
+      <div class="panel"><p>当天成交量 878 万股，为 20 日均量的 1.7 倍。这是 10 月的低点。</p></div>
+    </div>
+    <div class="ev">
+      <button><span class="d">10-26</span><span class="t">StoneX 首次覆盖给“买入”</span><span class="m up">+8.0%</span></button>
+      <div class="panel"><p>目标价 1,200 美元。当日 LITE 领涨标普 500 成分股。</p></div>
+    </div>
+    <div class="ev on">
+      <button><span class="d">10-28</span><span class="t">彭博社报道：Marvell 洽谈收购</span><span class="m up">盘后 +15%</span></button>
+      <div class="panel">
+        <p>报道称双方处于深入谈判阶段，方案为全股票，溢价“有限”。可能在下周宣布。</p>
+        <p>彭博情报估算交易规模接近 1,000 亿美元，约合每股 1,100 美元。</p>
+        <p>报道在收盘后发布。当日 LITE 盘中已涨 5.5%，属板块反弹。次日只收涨 0.6%，MRVL 跌 13%。</p>
+      </div>
+    </div>
+    <div class="ev">
+      <button><span class="d">10-30</span><span class="t">AI 硬件板块下跌，回吐涨幅</span><span class="m down">−8.57%</span></button>
+      <div class="panel">
+        <p>触发因素是 Alphabet 季度自由现金流为 −91 亿美元，市场担心资本开支不可持续。</p>
+        <p>同日 AAOI 跌 15%，COHR 跌 13%，MRVL 跌 10% 至 196.40。</p>
+      </div>
+    </div>
+    <div class="ev">
+      <button><span class="d">11-05</span><span class="t">FQ1 FY27 财报（盘后）</span><span class="m flat">待公布</span></button>
+      <div class="panel">
+        <p>公司指引：营收 12.25–12.75 亿美元，non-GAAP 营业利润率 39.5%–40.5%，EPS 4.05–4.35 美元。</p>
+        <p>前一天 11 月 4 日，COHR 先公布财报，可作为需求侧的前置读数。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sig caution"><span class="tag">小心 / 消息来源</span>
+    <p>收购细节全部来自媒体引述的匿名消息。两家公司都没有公告。谈判可能失败，也可能从未发生。</p>
+  </div>
+</section>
+
+<!-- ================= 03 ================= -->
+<section class="step detail" id="s3">
+  <div class="shead"><div class="snum">03 / 07</div><h2>财务：增长有多快</h2></div>
+  <p class="hint">切换季度与年度视图。所有数字单位为百万美元。</p>
+
+  <div class="seg" id="seg">
+    <button class="on" data-v="q">按季度</button><button data-v="y">按年度</button>
+  </div>
+
+  <div class="tscroll" id="finQ">
+  <table>
+    <caption>non-GAAP 口径。“—”表示未取得该季毛利率数据；“†”为 GAAP 稀释值。</caption>
+    <thead><tr><th>财季</th><th class="num">营收</th><th class="num">同比</th><th class="num">环比</th><th class="num">毛利率</th><th class="num">营业利润率</th><th class="num">EPS</th></tr></thead>
+    <tbody>
+      <tr><td>FQ1 FY26（2025-09）</td><td class="num">533.8</td><td class="num">+58%</td><td class="num">+11%</td><td class="num">—</td><td class="num">—</td><td class="num">0.05†</td></tr>
+      <tr><td>FQ2 FY26（2025-12）</td><td class="num">665.5</td><td class="num">+66%</td><td class="num">+25%</td><td class="num">—</td><td class="num">—</td><td class="num">0.89†</td></tr>
+      <tr><td>FQ3 FY26（2026-03）</td><td class="num">808.4</td><td class="num">+90%</td><td class="num">+22%</td><td class="num">—</td><td class="num">—</td><td class="num">2.37</td></tr>
+      <tr class="hl"><td>FQ4 FY26（2026-06）</td><td class="num">1,006.3</td><td class="num">+109%</td><td class="num">+25%</td><td class="num">50.4%</td><td class="num">36.6%</td><td class="num">3.23</td></tr>
+      <tr><td>FQ1 FY27（指引中值）</td><td class="num">1,250</td><td class="num">+134%</td><td class="num">+24%</td><td class="num">—</td><td class="num">40.0%</td><td class="num">4.20</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tscroll" id="finY" style="display:none">
+  <table>
+    <caption>年度数据</caption>
+    <thead><tr><th>财年</th><th class="num">营收</th><th class="num">同比</th><th class="num">non-GAAP 毛利率</th><th class="num">non-GAAP 营业利润率</th><th class="num">non-GAAP EPS</th></tr></thead>
+    <tbody>
+      <tr><td>FY2025（2025-06）</td><td class="num">1,645.0</td><td class="num">+20.9%</td><td class="num">34.7%</td><td class="num">9.7%</td><td class="num">3.11</td></tr>
+      <tr class="hl"><td>FY2026（2026-06）</td><td class="num">3,014.0</td><td class="num">+83.2%</td><td class="num">46.0%</td><td class="num">29.8%</td><td class="num">8.67</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="small">读懂这张表：FQ4 毛利率同比从 37.8% 升到 50.4%（+12.6 个百分点）。全年营业利润率从 9.7%（FY25）升到 29.8%（FY26）。这是产品结构升级与产能利用率的结果，不是一次性收益。</p>
+
+  <h3>供给是主要约束</h3>
+  <ul class="st">
+    <li>CEO 表述：部分产品到 2027 年仍有约 70% 的需求无法满足。</li>
+    <li>光器件售罄到 2029 年初。</li>
+    <li>EML 激光芯片缺口超过 30%（5 月口径）。</li>
+    <li>日本投资不少于 3.5 亿美元，用于磷化铟产能。</li>
+    <li>2026 年 3 月买下北卡 Greensboro 24 万平方英尺工厂。</li>
+    <li>Nvidia 在 2026 年 3 月分别向 Lumentum 与 Coherent 各投资 20 亿美元。</li>
+  </ul>
+
+  <div class="sig note"><span class="tag">注意 / 资产负债表</span>
+    <p>公司在 FY26 把大部分可转债转成股票。一次性非现金损失 78 亿美元，股本被摊薄。期末现金加短期投资 27 亿美元。</p>
+  </div>
+</section>
+
+<!-- ================= 04 ================= -->
+<section class="step detail" id="s4">
+  <div class="shead"><div class="snum">04 / 07</div><h2>价格：走到哪一步了</h2></div>
+  <p class="hint">上图看两年，下图看四个月。鼠标移到下图可看单日数据。</p>
+
+  <div class="fig">
+    <div class="fcap"><span>近两年周线 · 周收盘</span><span class="num">$50 → $1,133 → $841</span></div>
+    <svg id="cw" viewBox="0 0 980 340" preserveAspectRatio="none" role="img" aria-label="近两年周线图"></svg>
+    <div class="lg"><span><i style="background:#2a2f36"></i>周收盘</span><span><i style="background:#b23a2f"></i>最新收盘</span></div>
+  </div>
+
+  <div class="fig" id="figd">
+    <div class="fcap"><span>近 120 个交易日 · 收盘价与均线</span><span class="num">下方为成交量</span></div>
+    <svg id="cd" viewBox="0 0 980 340" preserveAspectRatio="none" role="img" aria-label="近四个月日线图"></svg>
+    <div class="lg"><span><i style="background:#2a2f36"></i>收盘</span><span><i style="background:#c07a2c"></i>MA20</span><span><i style="background:#8b93a1"></i>MA50</span><span><i style="background:#b23a2f"></i>涨</span><span><i style="background:#1b6b52"></i>跌</span></div>
+    <div class="tip" id="tip"></div>
+  </div>
+
+  <div class="tscroll">
+  <table>
+    <caption>关键位置（2026-10-30）</caption>
+    <thead><tr><th>项目</th><th class="num">数值</th><th>读法</th></tr></thead>
+    <tbody>
+      <tr><td>收盘</td><td class="num">840.70</td><td>低于 MA20 与 MA50，高于 MA200</td></tr>
+      <tr><td>MA20 / MA50 / MA200</td><td class="num">921.8 / 922.9 / 801.2</td><td>短期均线在头上，长期均线在脚下</td></tr>
+      <tr><td>52 周盘中高低</td><td class="num">184.2 / 1,143</td><td>回撤 26.5%，仍在高位区</td></tr>
+      <tr><td>近一年最大回撤</td><td class="num">−42.8%</td><td>7 月 29 日见底，3 个月后回到前高附近</td></tr>
+      <tr><td>年化波动率（20 日 / 250 日）</td><td class="num">88.8% / 99.4%</td><td>SMH 同期为 40.8%，约为其 2.4 倍</td></tr>
+      <tr><td>成交量 / 20 日均量</td><td class="num">771 万 / 1.48×</td><td>下跌日放量</td></tr>
+      <tr><td>空头余额</td><td class="num">774 万股</td><td>占股本 8.5%，1.5 日回补</td></tr>
+      <tr><td>近期支撑 / 阻力</td><td class="num">752 / 914</td><td>752 是 10 月低点，914 是并购消息前最后一日收盘</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="sig caution"><span class="tag">小心 / 波动</span>
+    <p>过去一年出现两次 30% 以上的回撤。10 月内单日跌幅超过 8% 出现三次（10/12、10/22、10/30）。仓位应按这个波动幅度来定。</p>
+  </div>
+</section>
+
+<!-- ================= 05 ================= -->
+<section class="step detail" id="s5">
+  <div class="shead"><div class="snum">05 / 07</div><h2>估值：现在贵不贵</h2></div>
+  <p class="hint">拖动两个滑块，自己算一遍。默认值是一致预期与当前倍数。</p>
+
+  <div class="lab">
+    <div class="labrow">
+      <label for="eps">FY27 预期 EPS（美元）</label>
+      <input type="range" id="eps" min="15" max="25" step="0.01" value="19.79">
+      <output id="epsO">19.79</output>
+    </div>
+    <div class="labrow">
+      <label for="pe">给定市盈率（倍）</label>
+      <input type="range" id="pe" min="20" max="70" step="0.5" value="42.5">
+      <output id="peO">42.5×</output>
+    </div>
+    <div class="labout">
+      <span class="big" id="px">$841</span>
+      <span class="dl" id="dl">+0.05%</span>
+      <span class="small" id="vs">相对现价 840.70</span>
+    </div>
+    <div class="bar"><span id="barI"></span></div>
+  </div>
+
+  <div class="tscroll">
+  <table>
+    <caption>最近收盘价 840.70 对应的倍数</caption>
+    <thead><tr><th>口径</th><th class="num">EPS</th><th class="num">市盈率</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>FY26 实际（TTM）</td><td class="num">8.67</td><td class="num">97.0×</td><td>已实现，不含增长</td></tr>
+      <tr class="hl"><td>FY27 一致预期</td><td class="num">19.79</td><td class="num">42.5×</td><td>同比 +128%</td></tr>
+      <tr><td>FY28 一致预期</td><td class="num">35.72</td><td class="num">23.5×</td><td>同比 +81%</td></tr>
+      <tr><td>公司 FQ1 指引年化</td><td class="num">16.80</td><td class="num">50.0×</td><td>最保守的当期读数</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small">参照区间：5 年平均 30 倍，3 年平均 40 倍，2026 年 5 月峰值 80 倍。按 FY27 增速算，PEG 约 0.33；按两年 EPS 复合增速算，约 0.41。低 PEG 的前提是明年真能增长 128%。</p>
+
+  <div class="sig warn"><span class="tag">警告 / 一致预期可能过时</span>
+    <p>部分汇总口径的 FQ1 EPS 一致预期只有 3.82 美元，低于公司指引下限 4.05 美元。看到“超预期”时，先确认用的是哪一套口径。</p>
+  </div>
+  <div class="sig note"><span class="tag">注意 / 市盈率的分子</span>
+    <p>7 月 29 日的 602 美元低点，对应当时 FY27 预期的约 30 倍。估值收缩本身就能带来 30% 的跌幅，不需要业绩变差。</p>
+  </div>
+</section>
+
+<!-- ================= 06 ================= -->
+<section class="step detail" id="s6">
+  <div class="shead"><div class="snum">06 / 07</div><h2>情景：四种可能</h2></div>
+  <p class="hint">点一张卡，看它的触发条件。概率是主观判断，不是一致预期。</p>
+
+  <div class="scens" id="scens">
+    <div class="scen" data-p="1075" data-pct="30">
+      <div class="h"><span class="n">A · 并购宣布</span><span class="p">概率 30%</span></div>
+      <div class="r up">$1,050–1,100</div>
+      <div class="small">相对现价 +25% ~ +31%</div>
+      <div class="why">按 1,000 亿美元规模、约 9,100 万股折算。宣布后价格向对价收敛。风险是 MRVL 股价继续下跌，对价随之缩水。</div>
+    </div>
+    <div class="scen" data-p="740" data-pct="33">
+      <div class="h"><span class="n">B · 谈判破裂 + 财报达标</span><span class="p">概率 33%</span></div>
+      <div class="r down">$690–790</div>
+      <div class="small">相对现价 −18% ~ −6%</div>
+      <div class="why">价格回到独立基本面：30–40 倍 FY27 预期 EPS。产品售罄与产能扩张支持估值下沿不破。</div>
+    </div>
+    <div class="scen" data-p="545" data-pct="17">
+      <div class="h"><span class="n">C · 谈判破裂 + 预期下修</span><span class="p">概率 17%</span></div>
+      <div class="r down">$495–595</div>
+      <div class="small">相对现价 −41% ~ −29%</div>
+      <div class="why">触发条件是超大厂资本开支转弱，或 EML 缺口收窄快于预期导致价格下行。此时倍数回到 25–30 倍。</div>
+    </div>
+    <div class="scen" data-p="1025" data-pct="20">
+      <div class="h"><span class="n">D · 财报超预期</span><span class="p">概率 20%</span></div>
+      <div class="r up">$950–1,100</div>
+      <div class="small">相对现价 +13% ~ +31%</div>
+      <div class="why">营收落在指引上沿，FQ2 指引环比再增 20% 以上，缺口继续扩大。市场给 45–50 倍上调后的预期。</div>
+    </div>
+  </div>
+  <div class="expect" id="expect">加权期望值约 <b>860–870 美元</b>，相对现价约 +3%。四个分支合计概率 100%。区间很宽，说明结论对假设敏感。</div>
+
+  <div class="sig caution"><span class="tag">小心 / 期望值不等于目标价</span>
+    <p>四个分支的价格区间互相重叠，单次结果不会落在均值上。这个数字只用来判断方向与赔率是否大致对称。</p>
+  </div>
+</section>
+
+<!-- ================= 07 ================= -->
+<section class="step" id="s7">
+  <div class="shead"><div class="snum">07 / 07</div><h2>观察：接下来看什么</h2></div>
+  <p class="hint">勾选你已确认的项目。勾选状态保存在本机浏览器。</p>
+
+  <div class="chk" id="chk">
+    <label><input type="checkbox" data-k="1"><span class="d">11-04</span><span class="x">看 COHR 财报：磷化铟扩产是否按期，EML 缺口是否收窄。</span></label>
+    <label><input type="checkbox" data-k="2"><span class="d">11-05</span><span class="x">看 LITE 财报：营收是否落到 12.5 亿美元以上，FQ2 指引环比是否再增 20%。</span></label>
+    <label><input type="checkbox" data-k="3"><span class="d">11-05</span><span class="x">看管理层口径：EML 缺口、售罄截止时间是否从 2029 年往前挪。</span></label>
+    <label><input type="checkbox" data-k="4"><span class="d">随时</span><span class="x">看并购进展：是否发布正式公告，是否有机构公开反对，是否有监管前置审批。</span></label>
+    <label><input type="checkbox" data-k="5"><span class="d">随时</span><span class="x">看 MRVL 股价：全股票方案下，对价与它同步。</span></label>
+    <label><input type="checkbox" data-k="6"><span class="d">随时</span><span class="x">看超大厂资本开支表述：自由现金流与折旧口径的变化，是本轮逻辑的上游变量。</span></label>
+  </div>
+  <div class="chkbar"><span id="chkT">0 / 6</span><span class="t"><i id="chkI"></i></span><span>已确认</span></div>
+  <p class="small" style="margin-top:26px">完成这 6 项，报告里的假设就都有读数了。任何一项反向，回到第 6 步重算情景。</p>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <h3>用词规则</h3>
+  <p>本报告按简化技术英语（ASD-STE100）的思路写作：一句一个信息，主动语态，一般时态，术语统一，不用比喻。风险分三级：警告（会导致损失）、小心（会影响判断）、注意（口径与前提）。</p>
+
+  <h3>术语</h3>
+  <div class="tscroll"><table>
+    <thead><tr><th>术语</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td>non-GAAP</td><td>剔除股权激励、并购摊销等非现金项目的口径。本文估值均用此口径。</td></tr>
+      <tr><td>FQ1 / FQ4</td><td>公司财季。Lumentum 财年 6 月底结束，FQ4 对应 4–6 月。</td></tr>
+      <tr><td>EML</td><td>电吸收调制激光器。高速光模块的核心芯片，当前供给紧张。</td></tr>
+      <tr><td>对价</td><td>收购方支付给目标公司股东的价格。全股票方案下随收购方股价变化。</td></tr>
+      <tr><td>一致预期</td><td>卖方分析师预测的均值。会滞后于公司指引。</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>数据来源</h3>
+  <p>价格与成交量：Yahoo Finance 日线接口。市值、股本、空头余额、目标价：Nasdaq 接口。财务数据：公司 FQ4 FY26 财报新闻稿（2026-08-11）与 SEC XBRL 数据。事件与行业数据：彭博社、Benzinga、Barchart、TIKR、24/7 Wall St、Investing.com、MarketBeat 的公开报道。</p>
+
+  <h3>局限</h3>
+  <p>并购细节来自匿名消息，未经公司确认。一致预期存在多套口径。情景概率是主观赋值，不是统计推断。财务口径的混用（GAAP 与 non-GAAP、EPS 与摊薄）会显著改变市盈率读数。</p>
+
+  <p style="margin-top:24px">本文为公开信息整理与量化分析，不构成投资建议。</p>
+</footer>
+
+<script>
+const D = {"weekly":[{"d":"2024-10-28","c":65.35,"h":66.28,"l":62.38},{"d":"2024-11-04","c":83.85,"h":88.0,"l":64.13},{"d":"2024-11-11","c":81.45,"h":89.7,"l":79.94},{"d":"2024-11-18","c":89.09,"h":90.51,"l":79.0},{"d":"2024-11-25","c":86.97,"h":91.21,"l":82.61},{"d":"2024-12-02","c":92.84,"h":95.92,"l":86.14},{"d":"2024-12-09","c":92.92,"h":96.25,"l":86.21},{"d":"2024-12-16","c":85.08,"h":95.68,"l":81.39},{"d":"2024-12-23","c":84.36,"h":86.43,"l":81.65},{"d":"2024-12-30","c":89.35,"h":89.61,"l":82.03},{"d":"2025-01-06","c":84.38,"h":92.76,"l":82.7},{"d":"2025-01-13","c":94.41,"h":94.69,"l":80.0},{"d":"2025-01-20","c":95.65,"h":104.0,"l":93.83},{"d":"2025-01-27","c":85.06,"h":88.99,"l":71.05},{"d":"2025-02-03","c":85.9,"h":95.0,"l":78.8},{"d":"2025-02-10","c":77.68,"h":86.35,"l":75.52},{"d":"2025-02-17","c":73.35,"h":81.16,"l":73.21},{"d":"2025-02-24","c":70.33,"h":75.89,"l":66.62},{"d":"2025-03-03","c":62.11,"h":71.42,"l":57.85},{"d":"2025-03-10","c":63.61,"h":66.27,"l":55.96},{"d":"2025-03-17","c":66.61,"h":70.06,"l":63.37},{"d":"2025-03-24","c":62.58,"h":73.71,"l":61.57},{"d":"2025-03-31","c":49.56,"h":68.9,"l":45.65},{"d":"2025-04-07","c":51.27,"h":62.88,"l":47.05},{"d":"2025-04-14","c":52.0,"h":55.65,"l":50.25},{"d":"2025-04-21","c":60.0,"h":61.1,"l":49.13},{"d":"2025-04-28","c":62.86,"h":64.59,"l":56.8},{"d":"2025-05-05","c":64.87,"h":68.25,"l":60.38},{"d":"2025-05-12","c":77.95,"h":79.0,"l":69.26},{"d":"2025-05-19","c":75.77,"h":78.49,"l":73.59},{"d":"2025-05-26","c":72.28,"h":80.0,"l":71.04},{"d":"2025-06-02","c":81.46,"h":84.99,"l":72.29},{"d":"2025-06-09","c":82.46,"h":86.42,"l":80.39},{"d":"2025-06-16","c":89.66,"h":90.65,"l":83.42},{"d":"2025-06-23","c":94.75,"h":95.43,"l":86.63},{"d":"2025-06-30","c":92.75,"h":96.68,"l":88.37},{"d":"2025-07-07","c":92.99,"h":94.15,"l":88.93},{"d":"2025-07-14","c":102.22,"h":103.9,"l":90.98},{"d":"2025-07-21","c":104.52,"h":105.47,"l":97.55},{"d":"2025-07-28","c":106.68,"h":114.12,"l":101.61},{"d":"2025-08-04","c":116.27,"h":116.35,"l":106.16},{"d":"2025-08-11","c":115.86,"h":129.98,"l":112.2},{"d":"2025-08-18","c":119.34,"h":121.99,"l":111.2},{"d":"2025-08-25","c":132.81,"h":137.1,"l":119.25},{"d":"2025-09-01","c":149.46,"h":152.27,"l":125.0},{"d":"2025-09-08","c":163.02,"h":168.01,"l":148.01},{"d":"2025-09-15","c":168.73,"h":173.38,"l":160.85},{"d":"2025-09-22","c":160.75,"h":170.04,"l":144.52},{"d":"2025-09-29","c":163.81,"h":178.49,"l":158.6},{"d":"2025-10-06","c":149.61,"h":170.76,"l":147.81},{"d":"2025-10-13","c":164.77,"h":170.6,"l":152.78},{"d":"2025-10-20","c":179.3,"h":182.08,"l":152.54},{"d":"2025-10-27","c":201.56,"h":214.5,"l":188.3},{"d":"2025-11-03","c":240.11,"h":258.35,"l":184.2},{"d":"2025-11-10","c":232.15,"h":273.89,"l":215.35},{"d":"2025-11-17","c":255.59,"h":282.66,"l":229.59},{"d":"2025-11-24","c":325.16,"h":325.46,"l":266.01},{"d":"2025-12-01","c":331.41,"h":344.0,"l":288.5},{"d":"2025-12-08","c":324.35,"h":376.53,"l":319.29},{"d":"2025-12-15","c":371.43,"h":373.34,"l":309.07},{"d":"2025-12-22","c":390.77,"h":401.6,"l":375.15},{"d":"2025-12-29","c":386.11,"h":392.0,"l":364.02},{"d":"2026-01-05","c":351.42,"h":402.8,"l":333.01},{"d":"2026-01-12","c":324.25,"h":364.51,"l":317.44},{"d":"2026-01-19","c":339.19,"h":391.46,"l":320.31},{"d":"2026-01-26","c":391.84,"h":448.0,"l":327.29},{"d":"2026-02-02","c":551.99,"h":558.38,"l":404.99},{"d":"2026-02-09","c":562.74,"h":603.83,"l":530.29},{"d":"2026-02-16","c":667.77,"h":678.0,"l":528.01},{"d":"2026-02-23","c":700.91,"h":765.0,"l":652.21},{"d":"2026-03-02","c":558.44,"h":783.8,"l":548.24},{"d":"2026-03-09","c":622.5,"h":715.73,"l":573.66},{"d":"2026-03-16","c":706.35,"h":787.45,"l":573.73},{"d":"2026-03-23","c":702.73,"h":808.8,"l":687.58},{"d":"2026-03-30","c":826.88,"h":827.56,"l":642.37},{"d":"2026-04-06","c":897.3,"h":960.0,"l":767.01},{"d":"2026-04-13","c":894.07,"h":912.0,"l":800.56},{"d":"2026-04-20","c":881.64,"h":925.5,"l":818.0},{"d":"2026-04-27","c":949.93,"h":985.13,"l":780.48},{"d":"2026-05-04","c":903.8,"h":1021.0,"l":854.62},{"d":"2026-05-11","c":970.7,"h":1085.68,"l":923.0},{"d":"2026-05-18","c":946.9,"h":977.27,"l":845.0},{"d":"2026-05-25","c":854.96,"h":963.01,"l":822.5},{"d":"2026-06-01","c":863.66,"h":1049.53,"l":806.62},{"d":"2026-06-08","c":921.56,"h":934.26,"l":776.01},{"d":"2026-06-15","c":850.0,"h":998.5,"l":831.17},{"d":"2026-06-22","c":816.98,"h":906.18,"l":774.3},{"d":"2026-06-29","c":728.32,"h":874.86,"l":710.01},{"d":"2026-07-06","c":802.01,"h":806.56,"l":680.43},{"d":"2026-07-13","c":732.82,"h":839.88,"l":650.82},{"d":"2026-07-20","c":762.99,"h":897.0,"l":755.03},{"d":"2026-07-27","c":713.94,"h":772.6,"l":594.84},{"d":"2026-08-03","c":890.17,"h":928.48,"l":671.0},{"d":"2026-08-10","c":926.14,"h":966.6,"l":787.01},{"d":"2026-08-17","c":866.71,"h":999.67,"l":815.03},{"d":"2026-08-24","c":895.0,"h":970.32,"l":784.47},{"d":"2026-08-31","c":881.26,"h":918.84,"l":818.89},{"d":"2026-09-07","c":927.03,"h":1026.76,"l":884.7},{"d":"2026-09-14","c":930.91,"h":951.6,"l":832.11},{"d":"2026-09-21","c":941.65,"h":1002.0,"l":912.0},{"d":"2026-09-28","c":1085.42,"h":1091.61,"l":881.23},{"d":"2026-10-05","c":1103.35,"h":1143.0,"l":1027.0},{"d":"2026-10-12","c":824.13,"h":1102.0,"l":800.0},{"d":"2026-10-19","c":756.17,"h":878.9,"l":736.01},{"d":"2026-10-26","c":840.7,"h":978.4,"l":756.0},{"d":"2026-10-30","c":840.7,"h":887.6,"l":805.29}],"daily":[{"d":"2026-05-12","c":992.37,"h":1085.68,"l":937.64,"v":7562700},{"d":"2026-05-13","c":1030.37,"h":1062.1,"l":998.2,"v":4398500},{"d":"2026-05-14","c":1001.81,"h":1024.85,"l":983.02,"v":3557100},{"d":"2026-05-15","c":970.7,"h":987.85,"l":923.0,"v":10141800},{"d":"2026-05-18","c":884.98,"h":954.26,"l":857.0,"v":7197500},{"d":"2026-05-19","c":890.09,"h":910.0,"l":845.0,"v":5025800},{"d":"2026-05-20","c":868.07,"h":929.26,"l":856.23,"v":5195000},{"d":"2026-05-21","c":964.5,"h":977.27,"l":859.0,"v":5781900},{"d":"2026-05-22","c":946.9,"h":971.05,"l":934.85,"v":3076900},{"d":"2026-05-26","c":910.81,"h":963.01,"l":903.02,"v":5212200},{"d":"2026-05-27","c":902.31,"h":915.0,"l":858.0,"v":4236000},{"d":"2026-05-28","c":860.62,"h":948.49,"l":854.52,"v":6128600},{"d":"2026-05-29","c":854.96,"h":869.0,"l":822.5,"v":6364000},{"d":"2026-06-01","c":905.0,"h":931.85,"l":806.62,"v":7932700},{"d":"2026-06-02","c":1029.15,"h":1035.0,"l":935.01,"v":8154600},{"d":"2026-06-03","c":938.0,"h":1049.53,"l":932.5,"v":6202200},{"d":"2026-06-04","c":945.08,"h":955.48,"l":864.2,"v":6060900},{"d":"2026-06-05","c":863.66,"h":974.0,"l":853.1,"v":7543900},{"d":"2026-06-08","c":895.4,"h":914.0,"l":841.93,"v":5097100},{"d":"2026-06-09","c":821.76,"h":914.0,"l":776.01,"v":7966100},{"d":"2026-06-10","c":853.26,"h":884.18,"l":825.66,"v":5839500},{"d":"2026-06-11","c":889.59,"h":890.8,"l":840.52,"v":4672200},{"d":"2026-06-12","c":921.56,"h":934.26,"l":863.0,"v":4553700},{"d":"2026-06-15","c":957.24,"h":998.5,"l":923.95,"v":5266100},{"d":"2026-06-16","c":875.36,"h":961.68,"l":863.41,"v":6070800},{"d":"2026-06-17","c":869.98,"h":891.54,"l":853.78,"v":5148200},{"d":"2026-06-18","c":850.0,"h":888.54,"l":831.17,"v":8360800},{"d":"2026-06-22","c":893.93,"h":906.18,"l":829.0,"v":6909900},{"d":"2026-06-23","c":827.92,"h":856.6,"l":812.8,"v":4817100},{"d":"2026-06-24","c":842.53,"h":866.43,"l":803.24,"v":4452700},{"d":"2026-06-25","c":861.97,"h":899.53,"l":810.24,"v":4522200},{"d":"2026-06-26","c":816.98,"h":824.85,"l":774.3,"v":9122000},{"d":"2026-06-29","c":851.4,"h":852.78,"l":754.0,"v":5604200},{"d":"2026-06-30","c":858.06,"h":874.86,"l":838.11,"v":4246600},{"d":"2026-07-01","c":801.16,"h":841.26,"l":784.0,"v":4202800},{"d":"2026-07-02","c":728.32,"h":803.9,"l":710.01,"v":5217800},{"d":"2026-07-06","c":731.25,"h":747.0,"l":716.12,"v":3805500},{"d":"2026-07-07","c":698.91,"h":732.57,"l":680.43,"v":3750800},{"d":"2026-07-08","c":707.1,"h":719.12,"l":683.4,"v":2586200},{"d":"2026-07-09","c":785.77,"h":804.9,"l":751.9,"v":5520000},{"d":"2026-07-10","c":802.01,"h":806.56,"l":761.62,"v":3675800},{"d":"2026-07-13","c":768.15,"h":809.23,"l":761.53,"v":3694400},{"d":"2026-07-14","c":814.8,"h":839.88,"l":796.01,"v":3768900},{"d":"2026-07-15","c":752.0,"h":821.95,"l":716.4,"v":4205400},{"d":"2026-07-16","c":706.23,"h":738.0,"l":693.0,"v":3984900},{"d":"2026-07-17","c":732.82,"h":747.0,"l":650.82,"v":4940200},{"d":"2026-07-20","c":765.55,"h":801.8,"l":763.0,"v":4428700},{"d":"2026-07-21","c":837.56,"h":843.0,"l":799.81,"v":4043600},{"d":"2026-07-22","c":829.7,"h":859.88,"l":809.01,"v":3876200},{"d":"2026-07-23","c":833.64,"h":897.0,"l":824.01,"v":4547400},{"d":"2026-07-24","c":762.99,"h":831.21,"l":755.03,"v":3651200},{"d":"2026-07-27","c":711.96,"h":770.3,"l":697.88,"v":3744200},{"d":"2026-07-28","c":651.93,"h":678.99,"l":602.28,"v":5642300},{"d":"2026-07-29","c":602.35,"h":655.21,"l":594.84,"v":6388600},{"d":"2026-07-30","c":693.24,"h":698.28,"l":650.0,"v":5621200},{"d":"2026-07-31","c":713.94,"h":772.6,"l":691.1,"v":4550400},{"d":"2026-08-03","c":779.89,"h":785.34,"l":671.0,"v":4198400},{"d":"2026-08-04","c":849.47,"h":868.32,"l":813.26,"v":6642900},{"d":"2026-08-05","c":826.26,"h":883.65,"l":824.0,"v":3421900},{"d":"2026-08-06","c":838.06,"h":881.79,"l":793.0,"v":4140200},{"d":"2026-08-07","c":890.17,"h":928.48,"l":861.9,"v":5818800},{"d":"2026-08-10","c":813.51,"h":937.0,"l":810.89,"v":6155000},{"d":"2026-08-11","c":820.59,"h":823.7,"l":787.01,"v":5985700},{"d":"2026-08-12","c":932.47,"h":966.6,"l":836.31,"v":11774600},{"d":"2026-08-13","c":880.41,"h":946.92,"l":875.59,"v":4646000},{"d":"2026-08-14","c":926.14,"h":957.9,"l":885.27,"v":4251900},{"d":"2026-08-17","c":968.9,"h":999.67,"l":927.0,"v":5388200},{"d":"2026-08-18","c":873.31,"h":943.76,"l":863.11,"v":6012800},{"d":"2026-08-19","c":827.6,"h":893.85,"l":821.03,"v":4409400},{"d":"2026-08-20","c":879.28,"h":881.88,"l":815.03,"v":4260100},{"d":"2026-08-21","c":866.71,"h":922.99,"l":855.01,"v":3660700},{"d":"2026-08-24","c":830.17,"h":844.0,"l":784.47,"v":3919000},{"d":"2026-08-25","c":885.57,"h":887.36,"l":841.1,"v":3240600},{"d":"2026-08-26","c":939.03,"h":947.53,"l":876.09,"v":4511400},{"d":"2026-08-27","c":956.14,"h":970.32,"l":918.01,"v":4119600},{"d":"2026-08-28","c":895.0,"h":942.91,"l":893.65,"v":3442100},{"d":"2026-08-31","c":914.76,"h":918.84,"l":886.84,"v":3206500},{"d":"2026-09-01","c":868.95,"h":909.14,"l":854.13,"v":3834300},{"d":"2026-09-02","c":870.58,"h":887.46,"l":848.43,"v":2791300},{"d":"2026-09-03","c":847.37,"h":874.0,"l":818.89,"v":3301500},{"d":"2026-09-04","c":881.26,"h":885.83,"l":841.04,"v":3558500},{"d":"2026-09-08","c":978.53,"h":1000.15,"l":884.7,"v":7390800},{"d":"2026-09-09","c":988.98,"h":1026.76,"l":978.11,"v":4539800},{"d":"2026-09-10","c":935.7,"h":994.5,"l":933.82,"v":3962400},{"d":"2026-09-11","c":927.03,"h":973.5,"l":914.65,"v":3396700},{"d":"2026-09-14","c":835.03,"h":878.99,"l":833.7,"v":4919200},{"d":"2026-09-15","c":838.96,"h":856.0,"l":832.11,"v":2893700},{"d":"2026-09-16","c":919.4,"h":937.88,"l":855.09,"v":6482700},{"d":"2026-09-17","c":893.61,"h":945.0,"l":886.1,"v":4902900},{"d":"2026-09-18","c":930.91,"h":951.6,"l":896.0,"v":9259400},{"d":"2026-09-21","c":954.49,"h":983.45,"l":946.0,"v":4713600},{"d":"2026-09-22","c":945.67,"h":1002.0,"l":934.38,"v":4333900},{"d":"2026-09-23","c":937.0,"h":960.0,"l":924.55,"v":3271500},{"d":"2026-09-24","c":929.04,"h":954.45,"l":912.0,"v":3671300},{"d":"2026-09-25","c":941.65,"h":962.88,"l":913.29,"v":3853800},{"d":"2026-09-28","c":921.32,"h":950.97,"l":881.23,"v":4461500},{"d":"2026-09-29","c":973.49,"h":998.88,"l":934.51,"v":6036700},{"d":"2026-09-30","c":971.26,"h":1009.45,"l":940.27,"v":3996400},{"d":"2026-10-01","c":1045.78,"h":1078.04,"l":966.0,"v":7546600},{"d":"2026-10-02","c":1085.42,"h":1091.61,"l":1037.24,"v":4735900},{"d":"2026-10-05","c":1091.67,"h":1124.4,"l":1072.05,"v":3003800},{"d":"2026-10-06","c":1133.4,"h":1137.2,"l":1084.04,"v":4249500},{"d":"2026-10-07","c":1111.07,"h":1119.15,"l":1082.44,"v":3385900},{"d":"2026-10-08","c":1048.6,"h":1099.6,"l":1027.0,"v":4877800},{"d":"2026-10-09","c":1103.35,"h":1143.0,"l":1077.38,"v":5251400},{"d":"2026-10-12","c":995.41,"h":1102.0,"l":980.0,"v":6455600},{"d":"2026-10-13","c":987.99,"h":993.0,"l":952.01,"v":3981900},{"d":"2026-10-14","c":896.33,"h":973.7,"l":893.88,"v":5770700},{"d":"2026-10-15","c":869.54,"h":874.73,"l":800.0,"v":7609000},{"d":"2026-10-16","c":824.13,"h":867.41,"l":822.0,"v":4224000},{"d":"2026-10-19","c":834.51,"h":874.41,"l":833.5,"v":4129300},{"d":"2026-10-20","c":822.51,"h":837.78,"l":785.0,"v":4526900},{"d":"2026-10-21","c":850.7,"h":878.9,"l":826.01,"v":3747600},{"d":"2026-10-22","c":752.54,"h":811.0,"l":746.23,"v":6157300},{"d":"2026-10-23","c":756.17,"h":788.9,"l":736.01,"v":3935000},{"d":"2026-10-26","c":818.1,"h":840.47,"l":756.0,"v":6055000},{"d":"2026-10-27","c":866.18,"h":892.99,"l":820.3,"v":5583900},{"d":"2026-10-28","c":913.95,"h":921.0,"l":872.4,"v":5949000},{"d":"2026-10-29","c":919.53,"h":978.4,"l":899.38,"v":7504100},{"d":"2026-10-30","c":840.7,"h":887.6,"l":805.29,"v":7708100}]};
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const money = v => "$" + Math.round(v).toLocaleString("en-US");
+const fmt = (v,d=2) => v.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+function niceStep(range,count){
+  const raw = range/count, mag = Math.pow(10,Math.floor(Math.log10(raw))), n = raw/mag;
+  let m = n<=1?1 : n<=2?2 : n<=2.5?2.5 : n<=5?5 : 10;
+  return m*mag;
+}
+const NS = "http://www.w3.org/2000/svg";
+const el = (n,a) => { const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e; };
+
+/* ---------- chart 1 : two-year weekly ---------- */
+(function(){
+  const svg = $("#cw"), W=980, H=340, L=8, R=88, T=40, B=46;
+  const w = D.weekly, n = w.length;
+  const pw = W-L-R, ph = H-T-B;
+  const ys = w.map(x=>x.c);
+  const yMax = Math.max(...ys), yMin = Math.min(...ys);
+  const step = niceStep(yMax,5);
+  const hi = Math.ceil(yMax*1.04/step)*step, lo = 0;
+  const x = i => L + (n===1?0:i/(n-1)*pw);
+  const y = v => T + (hi-v)/(hi-lo)*ph;
+
+  [0,1,2,3,4,5].map(i=>lo+step*i).filter(v=>v<=hi).forEach(v=>{
+    if(y(v)>T+ph+0.5) return;
+    svg.appendChild(el("line",{x1:L,x2:L+pw,y1:y(v),y2:y(v),stroke:"#eae6de","stroke-width":1}));
+    const t = el("text",{x:L+pw+10,y:y(v)+4,fill:"#9aa0a8","font-size":11,"font-family":"var(--mono)"});
+    t.textContent = v===0 ? "$0" : "$"+v.toLocaleString("en-US");
+    svg.appendChild(t);
+  });
+
+  let dLine = "", dArea = "";
+  w.forEach((p,i)=>{ const px=x(i), py=y(p.c); dLine += (i? "L":"M")+px.toFixed(1)+" "+py.toFixed(1)+" "; });
+  dArea = dLine + `L${x(n-1).toFixed(1)} ${T+ph} L${L} ${T+ph} Z`;
+  const gid = "gw";
+  const defs = el("defs",{});
+  const lg = el("linearGradient",{id:gid,x1:0,y1:0,x2:0,y2:1});
+  lg.appendChild(el("stop",{offset:"0%","stop-color":"#2a2f36","stop-opacity":".16"}));
+  lg.appendChild(el("stop",{offset:"100%","stop-color":"#2a2f36","stop-opacity":"0"}));
+  defs.appendChild(lg); svg.appendChild(defs);
+  svg.appendChild(el("path",{d:dArea,fill:"url(#"+gid+")"}));
+  svg.appendChild(el("path",{d:dLine,fill:"none",stroke:"#2a2f36","stroke-width":1.6,"stroke-linejoin":"round"}));
+
+  const iMax = ys.indexOf(yMax);
+  svg.appendChild(el("line",{x1:x(iMax),x2:x(iMax),y1:y(yMax),y2:T+ph,stroke:"#dcd7cd","stroke-dasharray":"3 3","stroke-width":1}));
+  svg.appendChild(el("circle",{cx:x(iMax),cy:y(yMax),r:3,fill:"#fff",stroke:"#2a2f36","stroke-width":1.6}));
+  const lp = el("text",{x:x(iMax),y:y(yMax)-12,"text-anchor":"middle",fill:"#4a4f57","font-size":11.5,"font-family":"var(--mono)","paint-order":"stroke",stroke:"#fbfaf7","stroke-width":3.5,"stroke-linejoin":"round"});
+  lp.textContent = "峰值 1,133.40（10/06）"; svg.appendChild(lp);
+
+  const last = w[n-1];
+  svg.appendChild(el("circle",{cx:x(n-1),cy:y(last.c),r:3.4,fill:"#b23a2f"}));
+  const lt = el("text",{x:x(n-1)-10,y:y(last.c)+26,"text-anchor":"end",fill:"#8f2c22","font-size":11.5,"font-family":"var(--mono)","paint-order":"stroke",stroke:"#fbfaf7","stroke-width":3.5,"stroke-linejoin":"round"});
+  lt.textContent = "10/30 · 840.70"; svg.appendChild(lt);
+
+  let lastY = "";
+  w.forEach((p,i)=>{
+    const my = p.d.slice(0,7);
+    const mo = parseInt(my.slice(5),10);
+    if([1,4,7,10].includes(mo) && my!==lastY){
+      lastY = my;
+      const t = el("text",{x:x(i),y:H-18,"text-anchor":"middle",fill:"#9aa0a8","font-size":10.5,"font-family":"var(--mono)"});
+      t.textContent = mo===1 ? my.replace("-","/") : String(mo).padStart(2,"0")+"月";
+      svg.appendChild(t);
+    }
+  });
+  svg.appendChild(el("line",{x1:L,x2:L+pw,y1:T+ph,y2:T+ph,stroke:"#d3cec4","stroke-width":1}));
+})();
+
+/* ---------- chart 2 : 120 sessions + volume + hover ---------- */
+const chart2 = (function(){
+  const svg = $("#cd"), tip = $("#tip"), box = $("#figd");
+  const W=980,H=340,L=8,R=88,T=14,B=34,GAP=26,VH=44;
+  const a = D.daily, n = a.length;
+  const pw = W-L-R, ph = H-T-B-GAP-VH;
+  const hi0 = Math.max(...a.map(d=>Math.max(d.h,d.ma20||0,d.ma50||0)));
+  const lo0 = Math.min(...a.map(d=>Math.min(d.l,d.ma20||1e9,d.ma50||1e9)));
+  const st = niceStep(hi0-lo0,5);
+  const hi = Math.ceil(hi0*1.01/st)*st, lo = Math.floor(lo0*0.99/st)*st;
+  const bw = pw/n;
+  const x = i => L + i*bw + bw/2;
+  const y = v => T + (hi-v)/(hi-lo)*ph;
+
+  for(let v=lo;v<=hi+0.001;v+=st){
+    svg.appendChild(el("line",{x1:L,x2:L+pw,y1:y(v),y2:y(v),stroke:"#eae6de","stroke-width":1}));
+    const t = el("text",{x:L+pw+10,y:y(v)+4,fill:"#9aa0a8","font-size":11,"font-family":"var(--mono)"});
+    t.textContent = "$"+Math.round(v).toLocaleString("en-US"); svg.appendChild(t);
+  }
+
+  const vMax = Math.max(...a.map(d=>d.v));
+  const vy = v => T+ph+GAP+VH - (v/vMax)*VH;
+  a.forEach((d,i)=>{
+    const up = d.c >= d.o;
+    const bh = Math.max(1, vy(0)-vy(d.v));
+    svg.appendChild(el("rect",{x:x(i)-bw*0.32,y:vy(d.v),width:bw*0.64,height:bh,
+      fill: up?"#b23a2f":"#1b6b52",opacity:".35"}));
+  });
+
+  [["c","#2a2f36",1.5],["ma20","#c07a2c",1.1],["ma50","#8b93a1",1.1]].forEach(([k,col,sw])=>{
+    let d="", on=false;
+    a.forEach((p,i)=>{
+      if(p[k]==null) return;
+      d += (on?"L":"M")+x(i).toFixed(1)+" "+y(p[k]).toFixed(1)+" ";
+      on = true;
+    });
+    svg.appendChild(el("path",{d,fill:"none",stroke:col,"stroke-width":sw,"stroke-linejoin":"round","stroke-linecap":"round"}));
+  });
+
+  const iLow = a.reduce((m,d,i)=> d.c < a[m].c ? i : m, 0);
+  svg.appendChild(el("circle",{cx:x(iLow),cy:y(a[iLow].c),r:3,fill:"#fff",stroke:"#1b6b52","stroke-width":1.5}));
+  const tl = el("text",{x:x(iLow)+7,y:y(a[iLow].c)+20,fill:"#155843","font-size":11,"font-family":"var(--mono)","paint-order":"stroke",stroke:"#fbfaf7","stroke-width":3.5,"stroke-linejoin":"round"});
+  tl.textContent = "10/22 低 752.54"; svg.appendChild(tl);
+
+  a.forEach((p,i)=>{
+    if(i%18!==0) return;
+    const t = el("text",{x:x(i),y:H-10,"text-anchor":"middle",fill:"#9aa0a8","font-size":10.5,"font-family":"var(--mono)"});
+    t.textContent = p.d.slice(5,10).replace("-","月")+"日"; svg.appendChild(t);
+  });
+
+  const cross = el("line",{x1:0,x2:0,y1:T,y2:T+ph,stroke:"#b23a2f","stroke-width":1,opacity:"0"});
+  svg.appendChild(cross);
+  const dot = el("circle",{cx:0,cy:0,r:3.5,fill:"#b23a2f",opacity:"0"});
+  svg.appendChild(dot);
+
+  function at(ev){
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) / r.width * W;
+    let i = Math.round((px - L - bw/2)/bw);
+    i = Math.max(0, Math.min(n-1, i));
+    return i;
+  }
+  svg.addEventListener("mousemove", ev=>{
+    const i = at(ev), p = a[i];
+    cross.setAttribute("x1",x(i)); cross.setAttribute("x2",x(i)); cross.setAttribute("opacity",".55");
+    dot.setAttribute("cx",x(i)); dot.setAttribute("cy",y(p.c)); dot.setAttribute("opacity","1");
+    const chg = (p.c/p.o - 1) * 100;
+    tip.innerHTML = `<b>${p.d}</b><br>收盘 ${fmt(p.c)}<br>当日 ${chg>=0?"+":""}${chg.toFixed(2)}%<br>成交量 ${(p.v/1e6).toFixed(1)} 百万股`;
+    const r = box.getBoundingClientRect();
+    tip.style.left = Math.min(r.width-150, ev.clientX - r.left + 14) + "px";
+    tip.style.top = Math.max(8, ev.clientY - r.top - 20) + "px";
+    tip.classList.add("on");
+  });
+  svg.addEventListener("mouseleave", ()=>{ tip.classList.remove("on"); cross.setAttribute("opacity","0"); dot.setAttribute("opacity","0"); });
+})();
+
+/* ---------- stepper ---------- */
+(function(){
+  const ids = ["s1","s2","s3","s4","s5","s6","s7"];
+  const chips = [...document.querySelectorAll(".chip")];
+  const prog = $("#prog");
+  function setActive(id){
+    chips.forEach(c=>c.classList.toggle("on", c.dataset.t===id));
+  }
+  chips.forEach(c=>c.addEventListener("click",()=>{
+    const t = document.getElementById(c.dataset.t);
+    if(document.body.classList.contains("brief") && t.classList.contains("detail")) toggleBrief(false);
+    t.scrollIntoView({behavior:"smooth",block:"start"});
+  }));
+  const io = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting) setActive(e.target.id); });
+  },{rootMargin:"-45% 0px -50% 0px"});
+  ids.forEach(id=>{ const n=document.getElementById(id); if(n) io.observe(n); });
+  addEventListener("scroll",()=>{
+    const h = document.documentElement;
+    const p = h.scrollTop / (h.scrollHeight - h.clientHeight) * 100;
+    prog.style.width = Math.min(100,p) + "%";
+  },{passive:true});
+  addEventListener("keydown",e=>{
+    if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
+    if(["INPUT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+    const cur = chips.findIndex(c=>c.classList.contains("on"));
+    const nx = Math.max(0, Math.min(ids.length-1, cur + (e.key==="ArrowRight"?1:-1)));
+    document.getElementById(ids[nx]).scrollIntoView({behavior:"smooth"});
+  });
+})();
+
+/* ---------- timeline accordion ---------- */
+document.querySelectorAll("#tl .ev").forEach(ev=>{
+  ev.querySelector("button").addEventListener("click",()=>{ ev.classList.toggle("on"); });
+});
+
+/* ---------- financial segmented ---------- */
+document.querySelectorAll("#seg button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#seg button").forEach(x=>x.classList.toggle("on", x===b));
+    const q = b.dataset.v === "q";
+    $("#finQ").style.display = q ? "" : "none";
+    $("#finY").style.display = q ? "none" : "";
+  });
+});
+
+/* ---------- valuation lab ---------- */
+(function(){
+  const eps = $("#eps"), pe = $("#pe"), px = 840.70;
+  function upd(){
+    const e = +eps.value, m = +pe.value, v = e*m;
+    $("#epsO").textContent = e.toFixed(2);
+    $("#peO").textContent = m.toFixed(1) + "×";
+    $("#px").textContent = money(v);
+    const dl = (v/px - 1) * 100;
+    const d = $("#dl");
+    d.textContent = (dl>=0?"+":"") + dl.toFixed(2) + "%";
+    d.className = "dl " + (dl>=0 ? "up" : "down");
+    const bar = $("#barI");
+    const w = Math.min(50, Math.abs(dl)/2);
+    bar.style.width = w + "%";
+    bar.style.left = dl>=0 ? "50%" : (50-w) + "%";
+    bar.className = dl>=0 ? "" : "neg";
+  }
+  eps.addEventListener("input",upd); pe.addEventListener("input",upd); upd();
+})();
+
+/* ---------- scenarios ---------- */
+document.querySelectorAll(".scen").forEach(s=>{
+  s.addEventListener("click",()=>{
+    const on = s.classList.contains("on");
+    document.querySelectorAll(".scen").forEach(x=>x.classList.remove("on"));
+    if(!on) s.classList.add("on");
+  });
+});
+
+/* ---------- checklist ---------- */
+(function(){
+  const KEY = "lite-report-2026-11-02";
+  const boxes = [...document.querySelectorAll("#chk input")];
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(KEY) || "{}"); }catch(e){}
+  function upd(){
+    const done = boxes.filter(b=>b.checked).length;
+    $("#chkT").textContent = done + " / " + boxes.length;
+    $("#chkI").style.width = (done/boxes.length*100) + "%";
+  }
+  boxes.forEach(b=>{
+    b.checked = !!saved[b.dataset.k];
+    b.addEventListener("change",()=>{
+      saved[b.dataset.k] = b.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+      upd();
+    });
+  });
+  upd();
+})();
+
+/* ---------- brief mode ---------- */
+function toggleBrief(force){
+  const on = force !== undefined ? force : !document.body.classList.contains("brief");
+  document.body.classList.toggle("brief", on);
+  const b = $("#brief"); b.textContent = on ? "显示全部" : "只看结论";
+  if(on) document.getElementById("s1").scrollIntoView({behavior:"smooth"});
+}
+$("#brief").addEventListener("click",()=>toggleBrief());
+$("#brief2").addEventListener("click",()=>toggleBrief(true));
+</script>
+</body>
+</html>
