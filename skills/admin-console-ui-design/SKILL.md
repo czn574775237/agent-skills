@@ -111,6 +111,19 @@ Text roles: page title 24/600 `-0.015em`; card title 16/600; body 14; table cell
 - Header: sticky `h-16`, `bg-background/90 backdrop-blur`, tenant context on the left, locale switch and role pill (`rounded-full border`, 6px green dot with a soft halo) on the right.
 - Mobile (`<1024px`): hide the sidebar, show the logo in the header, put the nav in a horizontally scrollable chip row under the header (`h-7 rounded-full border` chips).
 
+### Beyond one column: multi-level navigation
+
+Reach for this when the flat nav outgrows one scannable column — roughly **more than 12 items**, or two groups that are really separate jobs (management vs observability vs evaluation). Splitting the list by work domain beats adding a second scroll or shrinking labels. Keep at most **two levels**; a third level is a smell, fold it into the page.
+
+- **Two columns, not two draws**: a narrow activity rail (`w-14`, 56px) carries the domains — icon only, `aria-label` + `title` for the name, active = `bg-primary-soft text-primary` with a 2px primary indicator on the rail's inner edge. The second column (`w-56`, 224px) lists the active domain's pages with the ordinary nav-item recipe above.
+- **Domains group by job, not by noun.** Typical three: 管理 (accounts, identity, bots, settings, assets), 可观测 (sessions, sync logs, activity, devices, dispatch, approvals, channels), 评测 (runs, compare, metrics, cases). A domain holds 4–10 items; a domain with two items means the split is wrong — merge it.
+- **Path ownership is explicit**: each domain declares the path prefixes it owns; the current path picks the domain (most specific first, unknown paths fall to the first domain). Clicking a domain icon lands on that domain's overview — never on a path that only redirects.
+- **Breadcrumb becomes two-level**: `管理 / 总览`, `评测 / 概览`. Keep it in the sticky header; the page's own `pageHeader` still carries the full title.
+- **Mobile (<1024px)**: hide both columns; put two chip rows under the header — row 1 switches domain, row 2 switches page inside the current domain. One flat row of every page is the failure this replaces.
+- **Icons stay decorative**: rail icons are from `lucide-react`, one stroke weight; the label comes from `title`/`aria-label`, never a text label in the rail.
+
+Done when: every page is reachable in ≤2 clicks from the rail, no column exceeds 10 items, switching domains updates both the second column and the breadcrumb, and at 390px no row scrolls the page horizontally.
+
 ## 5. Page recipe
 
 1. One page header: `text-2xl font-semibold tracking-tight` title, one-line muted description, right-aligned actions.
@@ -134,6 +147,31 @@ Rounded icon tile as identity mark (no decorative emoji) · outline badge for ca
 ### Table
 
 Wrap in a card; the scroll container is `overflow-x-auto`, the table `min-w-[520px] w-full`. Header cells: `text-[11px] font-semibold uppercase tracking-[.06em] text-muted-foreground`, `bg-muted/50`, top and bottom border. Body cells `text-[13px] px-5 py-3`, row separators `border-border/65`, row hover `bg-muted/50`. IDs and hashes `font-mono text-xs`. Primary row link `font-medium hover:underline`.
+
+### Table at scale (a list that can outgrow one screen)
+
+Any list whose row count is **not bounded by the product** (accounts, sessions, dispatches, ops rows, skills, documents, approvals…) is a data grid, and every such page uses **the same grid contract**. A page must not invent its own paging idiom: a second idiom reads as a different product.
+
+- **Toolbar lives inside the card**, above the table, `border-b border-border px-4 py-3`, `gap-2`: search input `w-56 h-9` whose placeholder names the field it searches (`搜账号名…`), filter chips `h-8 rounded-[6px]` inside a `bg-muted p-0.5` track with the count beside each label, and toggle pills `h-9 rounded-md border`. Never place the toolbar above the card — it filters this table only, and splitting them costs a section of vertical rhythm.
+- **Chipped counts come from the unfiltered set**, so a filter can never hide its own escape hatch (`全部 12` stays 12 while `服务号 3` is active).
+- **Header row stays put** when the body scrolls: `sticky top-0 z-10` on an **opaque** `bg-muted` — `bg-muted/50` lets rows show through.
+- **Footer bar** closes the card: `flex items-center justify-between gap-4 border-t border-border px-4 py-3 text-xs text-muted-foreground`. Left = range and total (`第 1–25 / 共 137 个账号`); right = rows-per-page select, `上一页` / `下一页` icon buttons (`h-8 w-8 rounded-md border`), and `1 / 6` in `tabular-nums`. No page-number strip: admin lists run deep, and a numbered strip either lies or wraps.
+- **Page size** defaults to 25; options `25 / 50 / 100`. Changing it, or any filter, search, sort, or account switch, returns to page 1.
+- **Boundary states**: prev disabled on the first page, next on the last, both `disabled:opacity-40 disabled:pointer-events-none`; hide the footer when the result set is empty (the empty row already says what to do).
+- **Cursor-paged endpoints keep their own verbs** in the same footer slot — `回到最新` / `加载更早` on the right, range on the left. Never render fake page numbers over a cursor that cannot jump.
+- **Sortable columns**: clickable `<th>` content with a descending → ascending → unsorted cycle; the caret is a 12px `ChevronDown` that rotates, the active header takes `text-foreground`, and the button's `aria-label` states the current order so the state is not color-or-caret-only. Sorting is done on the **filtered full set before paging**, never on the visible page. Server-sorted endpoints skip this and say so in the column title.
+- **Skeleton rows match the page size** (not a hardcoded 8) so the card does not resize when data lands.
+- **Row identity survives paging**: selection, open drawers, and URL anchors reference row ids, not indexes; changing pages must not close an open detail panel.
+
+### One dataset, one owner
+
+Duplication across pages is the failure mode this system most often grows into, because every page starts from "this number would look good here too".
+
+- **Exactly one page renders a dataset in full.** Its list page; that page's header carries the count.
+- **The overview may summarize, never mirror**: at most 5 rows or 3 numbers per dataset, each with a link to the owning page (`查看全部 →`). A second full table of another page's data is a bug, not a convenience.
+- **Drill-downs (a drawer or dialog opened from a row) may restate that one row's numbers** — but the moment they show a list or a trend, they link out to the owning page instead.
+- **Configuration appears where it is enforced.** Upstream and model policy live on the page that reads them; the overview shows their state as a two-line summary and a single link, never a second editable copy.
+- **A number appears once per screen.** Two KPIs that differ only by scope ("用量记录" vs "总调用次数") must say so in the label or merge.
 
 ### Forms and dialogs
 
@@ -206,6 +244,9 @@ Run these checks against the rendered page (DevTools → Computed), not against 
 6. Desktop 1440 and mobile 390: no horizontal page scroll (`document.scrollWidth <= innerWidth + 2`); the table scrolls inside its card.
 7. Loading / error / empty / success all reachable; dialog Escape + focus return; language switch changes every label including table headers.
 8. Format, lint and type-check pass; no page defines its own status colors.
+9. Every unbounded list shows the grid footer: range + total on the left, rows-per-page and prev/next on the right; with 30+ rows the page does not grow past the viewport, and typing in the search box resets to page 1.
+10. No page renders another page's dataset in full: the overview's summaries each link out, and a count appears on exactly one screen.
+11. If the shell uses multi-level navigation: the activity rail carries ≤4 domains, the second column ≤10 items, breadcrumb is `域 / 页`, and at 390px two chip rows replace both columns with no horizontal page scroll.
 
 ## 12. Reference implementation
 
